@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head><meta charset="utf-8"><title>Приглашение</title>
+<style>body{font-family:system-ui;background:#1d232a;color:#a6adba;padding:2rem}
+.box{max-width:640px;margin:0 auto;background:#242b34;padding:2rem;border-radius:8px}
+h1{color:#ffb86b}</style></head>
+<body>
+<div class="box">
+  <h1>Приглашение</h1>
+  <p>Email: <strong>{{ invitation.email }}</strong></p>
+  <p>Роль: <strong>{{ invitation.role }}</strong>
+     @ {{ invitation.scope_type }}{% if invitation.scope_id %}:{{ invitation.scope_id }}{% endif %}</p>
+  <p>Статус: {{ invitation.get_status_display }}</p>
+  <p style="opacity:.6;">Полноценная форма принятия инвайта появится в коммите 2.</p>
+</div>
+</body>
+</html>

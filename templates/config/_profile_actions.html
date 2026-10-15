@@ -1,0 +1,14 @@
+{% load i18n %}
+<div class="flex justify-end gap-1">
+  {% if can_admin_any %}
+    <a href="{% url 'config:profile-edit' record.slug %}"
+       class="btn btn-xs btn-ghost" title="Редактировать">✎</a>
+    <button type="button"
+            class="btn btn-xs btn-ghost text-error"
+            title="Удалить"
+            hx-post="{% url 'config:profile-delete' record.slug %}"
+            hx-confirm="Удалить профиль «{{ record.name }}»?"
+            hx-target="closest tr"
+            hx-swap="outerHTML">✕</button>
+  {% endif %}
+</div>

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Дрифт конфигурации{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-4">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Дрифт конфигурации</h1>
+    {% if drifted %}
+      <form method="post" action="{% url 'deploy:drift-sync-all' %}">
+        {% csrf_token %}
+        <button class="btn btn-primary btn-sm"
+                onclick="return confirm('Создать задачи деплоя для всех хостов с дрифтом?')">
+          Синхронизировать всё ({{ drifted|length }})
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Дрифт обнаружен</h2>
+      {% if drifted %}
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Хост</th><th>Домен</th><th>Обнаружен</th>
+              <th>Последний деплой</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in drifted %}
+              <tr>
+                <td>
+                  <a href="{% url 'inventory:host-detail' h.pk %}" class="link">
+                    {{ h.hostname }}
+                  </a>
+                </td>
+                <td class="text-xs">{{ h.domain.name }}</td>
+                <td class="text-xs opacity-70">
+                  {{ h.drift_detected_at|date:"Y-m-d H:i" }}
+                </td>
+                <td class="text-xs opacity-70">
+                  {{ h.last_deployed_at|date:"Y-m-d H:i"|default:"—" }}
+                </td>
+                <td class="text-right">
+                  <button class="btn btn-xs btn-primary"
+                          hx-post="{% url 'deploy:host-apply' h.pk %}"
+                          hx-confirm="Создать задачу деплоя для {{ h.hostname }}?"
+                          hx-swap="none">
+                    Применить
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm opacity-60">Все хосты синхронизированы.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Никогда не деплоились</h2>
+      {% if unsynced %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Хост</th><th>Домен</th><th>Агент</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for h in unsynced %}
+              <tr>
+                <td>
+                  <a href="{% url 'inventory:host-detail' h.pk %}" class="link">
+                    {{ h.hostname }}
+                  </a>
+                </td>
+                <td class="text-xs">{{ h.domain.name }}</td>
+                <td class="text-xs">
+                  {% if h.agent %}активен{% else %}—{% endif %}
+                </td>
+                <td class="text-right">
+                  <button class="btn btn-xs btn-ghost"
+                          hx-post="{% url 'deploy:host-apply' h.pk %}"
+                          hx-swap="none">
+                    Применить
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm opacity-60">Все управляемые хосты деплоились хотя бы раз.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

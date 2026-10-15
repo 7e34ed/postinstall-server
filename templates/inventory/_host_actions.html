@@ -1,0 +1,15 @@
+<div class="flex justify-end gap-1">
+  <a href="{% url 'inventory:host-detail' record.pk %}"
+     class="btn btn-xs btn-ghost" title="Подробнее">⋯</a>
+
+  {% if can_operate_any %}
+    <button type="button"
+            class="btn btn-xs btn-primary"
+            title="Применить конфиг"
+            hx-post="{% url 'deploy:host-apply' record.pk %}"
+            hx-confirm="Создать задачу на применение конфига для {{ record.hostname }}?"
+            hx-swap="none">
+      Применить
+    </button>
+  {% endif %}
+</div>

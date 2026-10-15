@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Access review {{ run.id|slice:":8" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">
+      Review <span class="font-mono">{{ run.id|slice:":8" }}</span>
+    </h1>
+    <a href="{% url 'access:access-review' %}" class="btn btn-ghost btn-sm">
+      ← К списку
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="stats bg-base-200 shadow">
+    <div class="stat">
+      <div class="stat-title">Всего</div>
+      <div class="stat-value">{{ run.total_assignments }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Подтверждено</div>
+      <div class="stat-value text-success">{{ run.confirmed }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Отозвано</div>
+      <div class="stat-value text-error">{{ run.revoked }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Ожидает</div>
+      <div class="stat-value">{{ run.pending }}</div>
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Пункты</h2>
+      {% if items %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Пользователь</th><th>Роль</th><th>Scope</th>
+                <th>Статус</th><th>Действия</th></tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ item.assignment.user.username }}</td>
+                <td>{{ item.assignment.role }}</td>
+                <td class="text-xs">
+                  {{ item.assignment.scope_type }}:{{ item.assignment.scope_id }}
+                </td>
+                <td>
+                  {% if item.status == "pending" %}
+                    <span class="badge badge-info">ожидает</span>
+                  {% elif item.status == "confirmed" %}
+                    <span class="badge badge-success">подтверждено</span>
+                  {% elif item.status == "revoked" %}
+                    <span class="badge badge-error">отозвано</span>
+                  {% else %}
+                    <span class="badge badge-ghost">истекло</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if item.status == "pending" %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="item_id" value="{{ item.pk }}">
+                      <input type="hidden" name="action" value="confirm">
+                      <button class="btn btn-xs btn-success">Подтвердить</button>
+                    </form>
+                    <form method="post" style="display:inline;"
+                          onsubmit="return confirm('Отозвать роль у {{ item.assignment.user.username }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="item_id" value="{{ item.pk }}">
+                      <input type="hidden" name="action" value="revoke">
+                      <button class="btn btn-xs btn-error">Отозвать</button>
+                    </form>
+                  {% else %}
+                    <span class="text-xs opacity-60">
+                      {{ item.reviewed_by.username|default:"—" }}
+                      {{ item.reviewed_at|date:"Y-m-d" }}
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="opacity-60">Пунктов нет.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

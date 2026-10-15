@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Первичная настройка</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #1d232a;
+           color: #a6adba; margin: 0; min-height: 100vh; padding: 2rem; }
+    .box { max-width: 640px; margin: 0 auto; background: #242b34;
+           border-radius: 8px; padding: 2rem; }
+    h1 { color: #ffb86b; }
+    code { background: #1d232a; padding: 2px 6px; border-radius: 3px; }
+    input[type=text], input[type=email] {
+      width: 100%; padding: .5rem; font-family: monospace;
+      background: #1d232a; color: #a6adba; border: 1px solid #444;
+      border-radius: 4px; margin: .25rem 0 .75rem;
+    }
+    button { background: #6419e6; color: white; padding: .6rem 1.2rem;
+             border-radius: 6px; border: none; cursor: pointer; }
+    .success { color: #22c55e; }
+    .error { color: #ef4444; }
+    .info { color: #7dd3fc; }
+    ul { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Первичная настройка</h1>
+
+    {% if messages %}
+      {% for m in messages %}
+        <p class="{% if m.tags == 'error' %}error{% else %}success{% endif %}">
+          {{ m }}
+        </p>
+      {% endfor %}
+    {% endif %}
+
+    <p>
+      Для запуска системы нужно создать <strong>двух SUPERVISOR'ов</strong>.
+      Пока их меньше двух, работа приложения заблокирована.
+    </p>
+
+    <p class="info">
+      Сейчас SUPERVISOR'ов: <strong>{{ supervisors|length }}</strong>.
+      {% if needed %}Нужно ещё: {{ needed }}.{% endif %}
+    </p>
+
+    {% if supervisors %}
+      <h3>Активные SUPERVISOR'ы:</h3>
+      <ul>
+        {% for u in supervisors %}
+          <li>{{ u.username }} ({{ u.email }})</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <h3>Создать SUPERVISOR'а</h3>
+    <form method="post">
+      {% csrf_token %}
+      <label>Логин:</label>
+      <input type="text" name="username" autocomplete="off" autofocus required>
+      <label>Email (опционально):</label>
+      <input type="email" name="email" autocomplete="off">
+      <button type="submit">Создать</button>
+    </form>
+
+    <p style="opacity: .6; margin-top: 2rem;">
+      Это мастер setup-фазы. Он работает до тех пор, пока не созданы
+      два SUPERVISOR'а. После этого приложение переходит в обычный режим.
+    </p>
+  </div>
+</body>
+</html>

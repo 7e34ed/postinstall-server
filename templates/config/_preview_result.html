@@ -1,0 +1,27 @@
+{% load json_helpers %}
+
+{% if empty %}
+  <p class="text-sm opacity-60">{{ message }}</p>
+{% else %}
+  <p class="text-xs opacity-70 mb-2">
+    Хост <strong>{{ host.hostname }}</strong> ({{ host.host_set.name }})
+  </p>
+
+  <details open class="collapse collapse-arrow bg-base-100 mb-2">
+    <summary class="collapse-title text-sm font-medium">
+      Settings (итоговый для хоста)
+    </summary>
+    <div class="collapse-content">
+      {# <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ settings|pprint }}</pre> #}
+      <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ settings|pretty_json }}</pre>
+    </div>
+  </details>
+
+  <details class="collapse collapse-arrow bg-base-100">
+    <summary class="collapse-title text-sm font-medium">Hardening</summary>
+    <div class="collapse-content">
+      {# <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ hardening|pprint }}</pre> #}
+      <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ hardening|pretty_json }}</pre>
+    </div>
+  </details>
+{% endif %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Моя безопасность{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+  <h1 class="text-2xl font-semibold">Моя безопасность</h1>
+
+  {# --- High-security banner --- #}
+  {% if high_security %}
+    <div class="alert alert-warning">
+      <div>
+        <strong>Включён усиленный режим безопасности.</strong>
+        {% if needs_hardware %}
+          Для вашей роли требуются операции с hardware-фактором
+          (WebAuthn, клиентский сертификат, Rutoken).
+          Привяжите токен для полного доступа.
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# --- AAL --- #}
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Уровень аутентификации</h2>
+      <div class="flex items-center gap-3">
+        <span class="badge
+          {% if current_aal == 3 %}badge-success
+          {% elif current_aal == 2 %}badge-info
+          {% else %}badge-ghost{% endif %}">
+          {{ current_aal.label }}
+        </span>
+        {% if current_aal_at %}
+          <span class="text-xs opacity-60">
+            обновлён: {{ current_aal_at|date:"Y-m-d H:i" }}
+            {% if not aal_fresh %}(истёк){% endif %}
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xs opacity-60 mt-2">
+        AAL1 — пароль. AAL2 — пароль + TOTP. AAL3 — пароль + hardware.
+        Отдельные операции требуют более высокого уровня — при попытке
+        система попросит подтвердить личность повторно.
+      </p>
+    </div>
+  </div>
+
+  {# --- MFA --- #}
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Аутентификация</h2>
+      <p class="text-sm">
+        TOTP:
+        {% if has_totp %}
+          <span class="badge badge-success">включён</span>
+        {% else %}
+          <span class="badge badge-warning">не настроен</span>
+        {% endif %}
+      </p>
+      <p class="text-sm">
+        Recovery codes:
+        {% if recovery %}
+          <span class="badge badge-success">созданы</span>
+        {% else %}
+          <span class="badge badge-ghost">нет</span>
+        {% endif %}
+      </p>
+      <div class="flex gap-2 mt-3">
+        <a href="{% url 'mfa_index' %}" class="btn btn-sm btn-primary">
+          Управление MFA
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# --- Сертификаты --- #}
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Клиентские сертификаты</h2>
+      <div class="flex gap-2 mt-3">
+        <a href="{% url 'access:certificates-list' %}"
+           class="btn btn-sm btn-primary">
+          Управление сертификатами
+        </a>
+      </div>
+      {% if certificates %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Метка</th><th>Отпечаток</th><th>Действует до</th></tr>
+          </thead>
+          <tbody>
+            {% for c in certificates %}
+              <tr>
+                <td>{{ c.label }}</td>
+                <td class="font-mono text-xs">
+                  {{ c.fingerprint_sha256|slice:":16" }}…
+                </td>
+                <td class="text-xs">
+                  {{ c.valid_to|date:"Y-m-d"|default:"—" }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm opacity-70">Сертификаты не привязаны.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# --- High-security toggle --- #}
+  {% if user.is_superuser or perms.access.change_high_security %}
+    <p>
+      <a href="{% url 'access:high-security' %}"
+         class="btn btn-ghost btn-sm">Управление усиленным режимом</a>
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

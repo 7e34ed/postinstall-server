@@ -1,0 +1,33 @@
+{% if domains %}
+  <div class="space-y-3">
+    {% for row in domains %}
+      <div class="border border-base-300 rounded p-2">
+        <div class="flex items-center justify-between mb-1">
+          <a href="/admin/inventory/domain/{{ row.domain.pk }}/change/"
+             class="font-medium link link-hover">
+            {{ row.domain.name }}
+          </a>
+          <span class="text-xs opacity-60">
+            {{ row.hosts_total }} хост{{ row.hosts_total|pluralize:"ов" }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <div class="radial-progress text-success text-[10px]"
+               style="--value:{{ row.coverage_pct }}; --size:1.5rem; --thickness:3px;"
+               role="progressbar">
+          </div>
+          <span class="opacity-70">
+            агентов: {{ row.agents_online }}/{{ row.hosts_managed }}
+          </span>
+          {% if row.hosts_no_agent %}
+            <span class="badge badge-warning badge-xs ml-auto">
+              без агента: {{ row.hosts_no_agent }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-sm opacity-60">Доменов пока нет.</p>
+{% endif %}

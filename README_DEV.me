@@ -1,0 +1,45 @@
+# Проверка
+
+
+```bash
+# 1. uv-окружение
+uv sync --extra dev
+uv run python -c "import django; print(django.get_version())"
+
+# 2. Настройки — переключение конфигураций
+DJANGO_CONFIGURATION=Development uv run python -c \
+  "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); \
+   from configurations import settings; print(settings.DEBUG, settings.DATABASES['default']['HOST'])"
+# → True localhost
+
+DJANGO_CONFIGURATION=Production uv run python -c \
+  "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); \
+   from configurations import settings; print(settings.DEBUG)"
+# → False
+
+# 3. Docker
+docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.dev.yml exec django uv run python manage.py migrate
+docker compose -f docker-compose.dev.yml exec django uv run python manage.py createsuperuser
+
+# 4. Vite 8
+cd frontend && npm install && npm run build
+# → static/dist/.vite/manifest.json
+
+# 5. Versity S3
+aws --endpoint-url http://127.0.0.1:8333 \
+    --profile versity s3 mb s3://postinstall-static
+# где aws configure --profile versity: access=psiaccess, secret=psisecret
+```
+
+# При переключении в прод-режим с S3
+
+```bash
+export DJANGO_CONFIGURATION=Production
+export STATIC_STORAGE=s3
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_STORAGE_BUCKET_NAME=postinstall-static
+export AWS_S3_ENDPOINT_URL=http://versitygw:8333
+uv run python manage.py collectstatic --noinput
+```

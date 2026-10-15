@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}LDAP{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+  <h1 class="text-2xl font-semibold">LDAP-синхронизация</h1>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="alert alert-info text-sm">
+    <div>
+      LDAP используется только для чтения: верификация пользователей
+      при enrollment и синхронизация компьютеров. Как auth backend —
+      не используется, auto-provisioning отключён.
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Домены</h2>
+      <table class="table table-sm">
+        <thead>
+          <tr><th>Домен</th><th>LDAP настроен</th><th>Синк включён</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for d in domains %}
+            <tr>
+              <td>{{ d.name }}</td>
+              <td>
+                {% if d._ldap_ok %}
+                  <span class="badge badge-success badge-sm">да</span>
+                {% else %}
+                  <span class="badge badge-ghost badge-sm">нет</span>
+                {% endif %}
+              </td>
+              <td>{{ d.ldap_sync_enabled|yesno:"да,нет" }}</td>
+              <td class="text-right">
+                {% if d._ldap_ok %}
+                  <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="sync_domain">
+                    <input type="hidden" name="domain" value="{{ d.pk }}">
+                    <button class="btn btn-xs btn-primary">Синк хостов</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Проверить пользователя</h2>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="test_user">
+        <select name="domain" class="select select-bordered">
+          {% for d in domains %}
+            <option value="{{ d.pk }}">{{ d.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="email" name="email" placeholder="ivan@company.local"
+               class="input input-bordered" required>
+        <button class="btn btn-primary">Проверить</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">История прогонов</h2>
+      {% if runs %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Начат</th><th>Домен</th><th>Тип</th>
+                <th>Статус</th><th>Found</th><th>Created</th>
+                <th>Updated</th><th>Failed</th></tr>
+          </thead>
+          <tbody>
+            {% for r in runs %}
+              <tr>
+                <td class="text-xs">{{ r.started_at|date:"Y-m-d H:i" }}</td>
+                <td class="text-xs">{{ r.domain.name|default:"—" }}</td>
+                <td>{{ r.kind }}</td>
+                <td>
+                  {% if r.status == "success" %}
+                    <span class="badge badge-success badge-sm">OK</span>
+                  {% elif r.status == "failed" %}
+                    <span class="badge badge-error badge-sm">FAIL</span>
+                  {% else %}
+                    <span class="badge badge-info badge-sm">…</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.found }}</td>
+                <td>{{ r.created }}</td>
+                <td>{{ r.updated }}</td>
+                <td>{{ r.failed }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="opacity-60">Прогонов нет.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

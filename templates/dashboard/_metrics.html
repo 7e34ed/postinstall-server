@@ -1,0 +1,115 @@
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+  {# Хосты #}
+  <div class="stat bg-base-200 shadow rounded-box">
+    <div class="stat-figure text-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+      </svg>
+    </div>
+    <div class="stat-title">Хостов</div>
+    <div class="stat-value">{{ metrics.hosts_total }}</div>
+    <div class="stat-desc">
+      управляемых: {{ metrics.hosts_managed }}
+      {% if metrics.hosts_no_agent %}
+        · <span class="text-warning">без агента: {{ metrics.hosts_no_agent }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Агенты #}
+  <div class="stat bg-base-200 shadow rounded-box">
+    <div class="stat-figure text-success">
+      <div class="radial-progress text-success"
+           style="--value:{{ metrics.agent_coverage_pct }}; --size:3rem; --thickness:4px;"
+           role="progressbar">
+        {{ metrics.agent_coverage_pct }}%
+      </div>
+    </div>
+    <div class="stat-title">Агенты онлайн</div>
+    <div class="stat-value">
+      {{ metrics.agents_online }}<span class="text-base opacity-50">/{{ metrics.agents_total }}</span>
+    </div>
+    <div class="stat-desc">
+      {% if metrics.agents_offline %}
+        <span class="text-warning">офлайн: {{ metrics.agents_offline }}</span>
+      {% else %}
+        все на связи
+      {% endif %}
+    </div>
+  </div>
+
+  {# Активные задачи #}
+  <div class="stat bg-base-200 shadow rounded-box">
+    <div class="stat-figure text-info">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="stat-title">Активные задачи</div>
+    <div class="stat-value">
+      {% if metrics.active_total %}
+        <span class="loading loading-spinner loading-sm"></span>
+        {{ metrics.active_total }}
+      {% else %}
+        0
+      {% endif %}
+    </div>
+    <div class="stat-desc">в очереди или выполняются</div>
+  </div>
+
+  {# За 24 часа #}
+  <div class="stat bg-base-200 shadow rounded-box">
+    <div class="stat-figure text-secondary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="stat-title">За 24 часа</div>
+    <div class="stat-value">{{ metrics.last_24h_total }}</div>
+    <div class="stat-desc">
+      <span class="text-success">✓ {{ metrics.last_24h_success }}</span>
+      {% if metrics.last_24h_partial %}
+        · <span class="text-warning">◐ {{ metrics.last_24h_partial }}</span>
+      {% endif %}
+      {% if metrics.last_24h_failed %}
+        · <span class="text-error">✗ {{ metrics.last_24h_failed }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Дрифт #}
+  <div class="stat bg-base-200 shadow rounded-box">
+    <div class="stat-figure {% if metrics.drifted_count %}text-warning{% else %}text-success{% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.73-3.04l-6.93-12a2 2 0 00-3.46 0l-6.93 12A2 2 0 005.07 19z"/>
+      </svg>
+    </div>
+    <div class="stat-title">Дрифт конфига</div>
+    <div class="stat-value">
+      {% if metrics.drifted_count %}
+        <a href="/deploy/drift/" class="link">{{ metrics.drifted_count }}</a>
+      {% else %}
+        0
+      {% endif %}
+    </div>
+    <div class="stat-desc">
+      {% if metrics.unsynced_count %}
+        <a href="/deploy/drift/" class="link">
+          не синхронизировано: {{ metrics.unsynced_count }}
+        </a>
+      {% else %}
+        всё актуально
+      {% endif %}
+    </div>
+  </div>
+
+</div>

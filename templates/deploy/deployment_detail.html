@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Deployment {{ deployment.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold">
+        Deployment <span class="font-mono text-lg opacity-70">{{ deployment.id }}</span>
+      </h1>
+      <p class="text-sm opacity-60">
+        Хост
+        <a href="{% url 'inventory:host-detail' deployment.host.pk %}" class="link">
+          {{ deployment.host.hostname }}
+        </a>
+        · {{ deployment.host.domain.name }}
+      </p>
+    </div>
+    <a href="{% url 'deploy:list' %}" class="btn btn-ghost btn-sm">← К списку</a>
+  </div>
+
+  {# Блок со статусом: обновляется HTMX-polling'ом, пока не финал #}
+  <div id="deployment-status"
+       {% if not is_final %}
+         hx-get="{% url 'deploy:status' deployment.id %}"
+         hx-trigger="every 3s"
+         hx-swap="outerHTML"
+       {% endif %}>
+    {% include "deploy/_status_block.html" %}
+  </div>
+
+  {# Кнопки #}
+  <div class="flex gap-2 mt-4">
+    {% if can_cancel %}
+      <button class="btn btn-warning btn-sm"
+              hx-post="{% url 'deploy:cancel' deployment.id %}"
+              hx-confirm="Отменить задачу?"
+              hx-swap="none">
+        Отменить
+      </button>
+    {% endif %}
+    {% if can_retry %}
+      <button class="btn btn-primary btn-sm"
+              hx-post="{% url 'deploy:retry' deployment.id %}"
+              hx-confirm="Создать новую задачу на основе этой?"
+              hx-swap="none">
+        Повторить
+      </button>
+    {% endif %}
+  </div>
+
+  {# Отчёт #}
+  {% if report %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+      <div class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title text-base">Модули</h2>
+          {% if report.modules %}
+            <ul class="space-y-1 text-sm">
+              {% for m in report.modules %}
+                <li class="flex items-center gap-2">
+                  {% if m.status == "ok" %}
+                    <span class="badge badge-success badge-sm">OK</span>
+                  {% elif m.status == "skipped" %}
+                    <span class="badge badge-ghost badge-sm">SKIP</span>
+                  {% elif m.status == "not_supported" %}
+                    <span class="badge badge-ghost badge-sm">N/A</span>
+                  {% elif m.status == "error" %}
+                    <span class="badge badge-error badge-sm">ERR</span>
+                  {% else %}
+                    <span class="badge badge-sm">{{ m.status }}</span>
+                  {% endif %}
+                  <span class="font-mono">{{ m.name }}</span>
+                  {% if m.message %}
+                    <span class="opacity-60">— {{ m.message }}</span>
+                  {% endif %}
+                  {% if m.duration_ms %}
+                    <span class="opacity-40 text-xs ml-auto">{{ m.duration_ms }} ms</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-sm opacity-60">Нет данных.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card bg-base-200 shadow">
+        <div class="card-body">
+          <h2 class="card-title text-base">Hardening</h2>
+          {% if report.hardening %}
+            <ul class="space-y-1 text-sm">
+              {% for h in report.hardening %}
+                <li class="flex items-center gap-2">
+                  {% if h.status == "ok" %}
+                    <span class="badge badge-success badge-sm">OK</span>
+                  {% elif h.status == "fixed" %}
+                    <span class="badge badge-info badge-sm">FIX</span>
+                  {% elif h.status == "fail" %}
+                    <span class="badge badge-error badge-sm">FAIL</span>
+                  {% elif h.status == "skipped" %}
+                    <span class="badge badge-ghost badge-sm">SKIP</span>
+                  {% elif h.status == "pending_reboot" %}
+                    <span class="badge badge-warning badge-sm">REB</span>
+                  {% else %}
+                    <span class="badge badge-sm">{{ h.status }}</span>
+                  {% endif %}
+                  <span class="font-mono text-xs">{{ h.id }}</span>
+                  {% if h.message %}
+                    <span class="opacity-60">— {{ h.message }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-sm opacity-60">Нет данных.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if report.error %}
+      <div class="alert alert-error mt-4">
+        <div>
+          <h3 class="font-bold">Ошибка</h3>
+          <pre class="text-xs whitespace-pre-wrap">{{ report.error }}</pre>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

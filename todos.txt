@@ -1,0 +1,30 @@
+_scope_filter - реализация функции, используется в apps.dashboard.views.dashboard_view (и вообще вопрос по функции dashboard_view - зачем там active_roles, который не используется?)
+
+Потерялся CredentialFilter из .filters в apps.credentials.views
+
+
+Проверка can_manage_role внутри role_assign (в apps.access.admin_views) — проверил, нет проверки.
+
+Не противоречат ли друг другу логика декораторов @require_roles("supervisor", ...) и @staff_member_required?
+
+
+----------------------------
+
+- Вопрос: при mTLS аутентификации с использованием hardware токена с сертификатом на борту доменного (Active Directory) пользователя разве не должны мы подтянуть учетку из AD в django?
+
+
+roles_list	@staff_member_required	@require_roles("supervisor")
+role_assign	@staff_member_required	@login_required (проверка внутри)
+role_revoke	@staff_member_required	@login_required (проверка внутри)
+direct_approve	@staff_member_required	@login_required (проверка внутри)
+invites_list	@staff_member_required	@require_roles("supervisor", "admin")
+invite_create	@staff_member_required	@require_roles("supervisor", "admin")
+invite_approve	@staff_member_required	@require_roles("supervisor")
+invite_revoke	@staff_member_required	@require_roles("supervisor", "admin")
+invite_resend	@staff_member_required	@require_roles("supervisor", "admin")
+high_security_page	@staff_member_required	@require_roles("supervisor")
+security_center	@staff_member_required	@login_required
+certificates_list	@staff_member_required	@login_required
+certificate_revoke	@staff_member_required	@login_required
+radius_page	@staff_member_required	@require_roles("supervisor")
+user_set_auth_source	@staff_member_required	@require_roles("supervisor")

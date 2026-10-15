@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head><meta charset="utf-8"><title>Приглашение недоступно</title>
+<style>body{font-family:system-ui;background:#1d232a;color:#a6adba;padding:2rem}
+.box{max-width:560px;margin:0 auto;background:#242b34;padding:2rem;border-radius:8px}
+h1{color:#ef4444}</style></head>
+<body>
+  <div class="box">
+    <h1>Приглашение недоступно</h1>
+    <p>
+      {% if reason == "expired" %}
+        Срок действия приглашения истёк.
+      {% elif reason == "revoked" %}
+        Приглашение было отозвано администратором.
+      {% elif reason == "already_used" %}
+        Это приглашение уже было использовано.
+      {% elif reason == "rejected" %}
+        Приглашение было отклонено.
+      {% else %}
+        Приглашение не найдено или ссылка повреждена.
+      {% endif %}
+    </p>
+    <p>Попросите администратора создать новое.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load django_tables2 %}
+
+{% block title %}Хосты{% endblock %}
+
+{% block content %}
+<div class="card bg-base-200 shadow">
+  <div class="card-body">
+
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="card-title">Хосты</h1>
+      <span class="text-sm opacity-60">Всего: {{ paginator.count }}</span>
+    </div>
+
+    <form method="get"
+          hx-get="{% url 'inventory:host-list' %}"
+          hx-target="#hosts-area"
+          hx-trigger="change, submit"
+          hx-push-url="true"
+          class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      {{ filter.form.as_div }}
+      <div class="col-span-full flex gap-2">
+        <button class="btn btn-primary btn-sm" type="submit">Фильтр</button>
+        <a class="btn btn-ghost btn-sm" href="{% url 'inventory:host-list' %}">Сбросить</a>
+      </div>
+    </form>
+
+    <div id="hosts-area">
+      <form id="hosts-bulk-form"
+            hx-post="{% url 'deploy:bulk-apply' %}"
+            hx-swap="none">
+        {% csrf_token %}
+        <div class="flex items-center gap-3 mb-2">
+          <button type="submit" class="btn btn-primary btn-sm"
+                  onclick="return confirm('Применить конфиг выбранным хостам?')">
+            Применить выбранным
+          </button>
+          <span id="selected-count" class="text-sm opacity-60"></span>
+        </div>
+        <div class="overflow-x-auto">
+          {% render_table table %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("change", function (e) {
+    if (e.target.classList.contains("host-checkbox")) {
+      const n = document.querySelectorAll(".host-checkbox:checked").length;
+      const el = document.getElementById("selected-count");
+      if (el) el.textContent = n ? `выбрано: ${n}` : "";
+    }
+  });
+</script>
+{% endblock %}

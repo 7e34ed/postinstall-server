@@ -1,0 +1,21 @@
+{% with status=deployment.status %}
+  {% if status == "pending" %}
+    <span class="badge badge-ghost">Ожидает</span>
+  {% elif status == "dispatched" %}
+    <span class="badge badge-info">Отправлена</span>
+  {% elif status == "running" %}
+    <span class="badge badge-warning">Выполняется</span>
+  {% elif status == "success" %}
+    <span class="badge badge-success">Успешно</span>
+  {% elif status == "partial" %}
+    <span class="badge badge-warning">Частично</span>
+  {% elif status == "failed" %}
+    <span class="badge badge-error">Ошибка</span>
+  {% elif status == "cancelled" %}
+    <span class="badge">Отменена</span>
+  {% elif status == "expired" %}
+    <span class="badge badge-ghost">Протухла</span>
+  {% else %}
+    <span class="badge">{{ status }}</span>
+  {% endif %}
+{% endwith %}

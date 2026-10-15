@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Создать приглашение{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h1 class="card-title">Новое приглашение</h1>
+
+      <form method="post" class="space-y-3 mt-4">
+        {% csrf_token %}
+
+        <div>
+          <label class="label"><span class="label-text">Email</span></label>
+          <input type="email" name="email" required
+                 class="input input-bordered w-full"
+                 placeholder="user@company.local">
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Роль</span></label>
+          <select name="role" required class="select select-bordered w-full">
+            <option value="">—</option>
+            {% for r in available_roles %}
+              <option value="{{ r.value }}">{{ r.label }}</option>
+            {% endfor %}
+          </select>
+          <small class="opacity-60">
+            Для ADMIN и AUDITOR требуется подтверждение второго SUPERVISOR'а.
+          </small>
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Scope</span></label>
+          <select name="scope_type" required
+                  class="select select-bordered w-full"
+                  onchange="this.form.scope_id.value = 0">
+            <option value="global">Глобально</option>
+            <option value="domain">Домен</option>
+            <option value="host_set">Набор хостов</option>
+            <option value="host">Хост</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">ID объекта scope</span></label>
+          <input type="number" name="scope_id" value="0"
+                 class="input input-bordered w-full font-mono">
+          <small class="opacity-60">
+            Для GLOBAL оставьте 0. Для DOMAIN/HOST_SET/HOST укажите pk.
+          </small>
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Причина (опционально)</span></label>
+          <textarea name="reason" rows="2"
+                    class="textarea textarea-bordered w-full"></textarea>
+        </div>
+
+        <div class="flex gap-2">
+          <button class="btn btn-primary">Создать и отправить</button>
+          <a href="{% url 'access:invites-list' %}"
+             class="btn btn-ghost">Отмена</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

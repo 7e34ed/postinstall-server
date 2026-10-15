@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}RADIUS / Aladdin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">RADIUS / Aladdin HOTP</h1>
+    <a href="{% url 'access:my-security' %}" class="btn btn-ghost btn-sm">
+      ← Моя безопасность
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Проверка соединения</h2>
+
+      <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="test">
+
+        <div>
+          <label class="label"><span class="label-text">Тестовый пользователь</span></label>
+          <input type="text" name="username" class="input input-bordered w-full"
+                 placeholder="alice" autocomplete="off">
+        </div>
+
+        <div>
+          <label class="label"><span class="label-text">Пароль+OTP</span></label>
+          <input type="password" name="password" class="input input-bordered w-full"
+                 autocomplete="new-password">
+        </div>
+
+        <div class="flex items-end">
+          <button class="btn btn-primary w-full">Проверить</button>
+        </div>
+      </form>
+
+      {% if result %}
+        <div class="alert {% if result.accepted %}alert-success{% else %}alert-warning{% endif %} mt-3 text-sm">
+          <div>
+            <strong>Code:</strong> {{ result.code }}<br>
+            {% if result.message %}<strong>Message:</strong> {{ result.message }}{% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Пользователи с RADIUS-аутентификацией</h2>
+      {% if radius_users %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Пользователь</th><th>RADIUS-имя</th><th>Обновлён</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for s in radius_users %}
+              <tr>
+                <td>{{ s.user.username }}</td>
+                <td>{{ s.radius_username|default:"—" }}</td>
+                <td class="text-xs">{{ s.updated_at|date:"Y-m-d H:i" }}</td>
+                <td class="text-right">
+                  <form method="post"
+                        action="{% url 'access:user-auth-source' s.user.pk %}"
+                        style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="source" value="local">
+                    <button class="btn btn-xs btn-ghost">
+                      Вернуть на локальную
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm opacity-70">
+          Нет пользователей с RADIUS-аутентификацией.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">Как перевести пользователя на RADIUS</h2>
+      <p class="text-sm">
+        Через <a href="/admin/access/userauthsettings/" class="link">админку</a>
+        или через API:
+      </p>
+      <pre class="bg-base-300 p-3 rounded text-xs overflow-x-auto">manage.py shell -c "
+from django.contrib.auth import get_user_model
+from apps.access.models import UserAuthSettings
+User = get_user_model()
+u = User.objects.get(username='alice')
+s, _ = UserAuthSettings.objects.get_or_create(user=u)
+s.auth_source = 'radius'
+s.save()
+"</pre>
+      <p class="text-sm opacity-70 mt-2">
+        После смены источника пользователь сможет зайти только через
+        RADIUS с паролем+OTP. Локальный пароль Django перестаёт работать.
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

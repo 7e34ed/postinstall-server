@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}postinstall{% endblock %}</title>
+  {% load django_vite %}
+  {% vite_hmr_client %}
+  {% vite_asset 'src/main.js' %}
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+  <div class="navbar bg-base-200 shadow">
+    <div class="flex-1 px-4 flex gap-2">
+      <a href="/" class="text-xl font-semibold mr-4">postinstall</a>
+      <a href="/" class="btn btn-ghost btn-sm">Дашборд</a>
+      <a href="/hosts/" class="btn btn-ghost btn-sm">Хо ты</a>
+      <a href="/config/profiles/" class="btn btn-ghost btn-sm">Профили</a>
+      <a href="/deploy/" class="btn btn-ghost btn-sm">Развёртывания</a>
+   
+      {% if can_admin_any %}
+        <a href="/credentials/" class="btn btn-ghost btn-sm">Учётные данные</a>
+      {% endif %}
+   
+      <a href="/deploy/drift/" class="btn btn-ghost btn-sm">Дрифт</a>
+      
+      {% if can_supervise %}
+      <a href="{% url 'access:roles-list' %}" class="btn btn-ghost btn-sm">Роли</a>
+      <a href="{% url 'access:invites-list' %}" class="btn btn-ghost btn-sm">Приглашения</a>
+      <a href="{% url 'access:radius' %}" class="btn btn-ghost btn-sm">RADIUS</a>
+      <a href="{% url 'access:break-glass' %}" class="btn btn-ghost btn-sm">Break-glass</a>
+      <a href="{% url 'access:access-review' %}" class="btn btn-ghost btn-sm">Review</a>
+      <a href="{% url 'access:service-accounts-list' %}" class="btn btn-ghost btn-sm">Сервисы</a>
+      <a href="{% url 'access:ip-rules' %}" class="btn btn-ghost btn-sm">IP-правила</a>
+      {% endif %}
+
+      {% if can_view_secrets %}
+        <a href="{% url 'secrets:items' %}" class="btn btn-ghost btn-sm">Секреты</a>
+      {% endif %}
+
+      <a href="/admin/" class="btn btn-ghost btn-sm">Админка</a>
+    </div>
+    <div class="flex-none gap-2 pr-4">
+      {% if user.is_authenticated %}
+        {# <span class="text-sm opacity-70">{{ user.username }}</span> #}
+        <span class="badge badge-ghost badge-sm" title="Уровень аутентификации">
+          {% if user.is_superuser %}
+            superuser
+          {% else %}
+            {{ request.session.psi_aal|default:"AAL1"|upper }}
+          {% endif %}
+        </span>
+        <a href="{% url 'access:my-security' %}" class="btn btn-ghost btn-sm">
+          {{ user.username }}
+        </a>
+  
+        <form method="post" action="/admin/logout/" class="inline">
+          {% csrf_token %}
+          <button class="btn btn-sm btn-ghost">Выйти</button>
+        </form>
+      {% else %}
+        <a href="/admin/login/?next={{ request.path }}" class="btn btn-sm">Войти</a>
+      {% endif %}
+    </div>
+  </div>
+  <main class="p-6">
+  {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

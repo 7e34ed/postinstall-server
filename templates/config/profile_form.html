@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if mode == 'create' %}Новый профиль{% else %}{{ instance.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<div x-data="{ tab: 'main', slugAuto: {{ 'true' if mode == 'create' else 'false' }} }"
+     class="max-w-6xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold">
+        {% if mode == 'create' %}Новый профиль{% else %}{{ instance.name }}{% endif %}
+      </h1>
+      {% if instance %}
+        <p class="text-sm opacity-60">
+          slug: <code>{{ instance.slug }}</code> · версия {{ instance.version }}
+        </p>
+      {% endif %}
+    </div>
+    <a href="{% url 'config:profile-list' %}" class="btn btn-ghost btn-sm">← К списку</a>
+  </div>
+
+  <form hx-post="{% if mode == 'create' %}{% url 'config:profile-create' %}{% else %}{% url 'config:profile-edit' instance.slug %}{% endif %}"
+        hx-target="body"
+        hx-swap="outerHTML"
+        method="post"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {% csrf_token %}
+
+    {# ==================== Левая колонка: поля формы ==================== #}
+    <div class="lg:col-span-2 card bg-base-200 shadow">
+      <div class="card-body">
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-error text-sm">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        {# ---- Табы ---- #}
+        <div role="tablist" class="tabs tabs-boxed mb-4">
+          <a role="tab" class="tab" :class="{ 'tab-active': tab === 'main' }"
+             @click.prevent="tab = 'main'">Основное</a>
+          <a role="tab" class="tab" :class="{ 'tab-active': tab === 'composition' }"
+             @click.prevent="tab = 'composition'">Композиция</a>
+          <a role="tab" class="tab" :class="{ 'tab-active': tab === 'advanced' }"
+             @click.prevent="tab = 'advanced'">Скрипт / JSON</a>
+        </div>
+
+        {# ==================== Таб: Основное ==================== #}
+        <div x-show="tab === 'main'" class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="md:col-span-2">
+              <label class="label"><span class="label-text">Название</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <span class="text-error text-xs">{{ form.name.errors|join:", " }}</span>
+              {% endif %}
+            </div>
+            <div>
+              <label class="label"><span class="label-text">Slug</span></label>
+              <input type="text" name="{{ form.slug.name }}"
+                     x-ref="slug"
+                     x-init="if (slugAuto) $watch('$refs.name.value', v => { if (!$refs.slug.value) $refs.slug.value = v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') })"
+                     value="{{ form.slug.value|default_if_none:'' }}"
+                     class="input input-bordered w-full">
+              {% if form.slug.errors %}
+                <span class="text-error text-xs">{{ form.slug.errors|join:", " }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div>
+            <label class="label"><span class="label-text">Описание</span></label>
+            {{ form.description }}
+            {% if form.description.errors %}
+              <span class="text-error text-xs">{{ form.description.errors|join:", " }}</span>
+            {% endif %}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="label"><span class="label-text">Платформа</span></label>
+              {{ form.platform }}
+            </div>
+            <div class="flex items-end gap-3">
+              <label class="label cursor-pointer">
+                <span class="label-text mr-2">Активен</span>
+                {{ form.is_active }}
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="label"><span class="label-text">Теги</span></label>
+            {{ form.tags }}
+          </div>
+        </div>
+
+        {# ==================== Таб: Композиция ==================== #}
+        <div x-show="tab === 'composition'" x-cloak class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="label"><span class="label-text">{{ form.extra_ports.label }}</span></label>
+              {{ form.extra_ports }}
+              <label class="label"><span class="label-text-alt">{{ form.extra_ports.help_text }}</span></label>
+            </div>
+            <div>
+              <label class="label"><span class="label-text">{{ form.jails.label }}</span></label>
+              {{ form.jails }}
+              <label class="label"><span class="label-text-alt">{{ form.jails.help_text }}</span></label>
+            </div>
+          </div>
+
+          <div>
+            <label class="label"><span class="label-text">{{ form.packages.label }}</span></label>
+            {{ form.packages }}
+            <label class="label"><span class="label-text-alt">{{ form.packages.help_text }}</span></label>
+          </div>
+
+          <div class="divider">Репозитории</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {% for cb in form.repositories %}
+              <label class="label cursor-pointer justify-start gap-2">
+                {{ cb.tag }}
+                <span class="label-text">{{ cb.choice_label }}</span>
+              </label>
+            {% empty %}
+              <p class="text-sm opacity-60">
+                Нет репозиториев.
+                <a href="/admin/config/repository/add/" class="link">Добавить</a>
+              </p>
+            {% endfor %}
+          </div>
+
+          <div class="divider">Сертификаты</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {% for cb in form.certificates %}
+              <label class="label cursor-pointer justify-start gap-2">
+                {{ cb.tag }}
+                <span class="label-text">{{ cb.choice_label }}</span>
+              </label>
+            {% empty %}
+              <p class="text-sm opacity-60">
+                Нет сертификатов.
+                <a href="/admin/config/certificate/add/" class="link">Добавить</a>
+              </p>
+            {% endfor %}
+          </div>
+
+          <div class="divider">Пакеты по URL (.deb / .msi)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {% for cb in form.package_installs %}
+              <label class="label cursor-pointer justify-start gap-2">
+                {{ cb.tag }}
+                <span class="label-text">{{ cb.choice_label }}</span>
+              </label>
+            {% empty %}
+              <p class="text-sm opacity-60">
+                Нет пакетов.
+                <a href="/admin/config/package/add/" class="link">Добавить</a>
+              </p>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# ==================== Таб: Скрипт / JSON ==================== #}
+        <div x-show="tab === 'advanced'" x-cloak class="space-y-4">
+          <div>
+            <label class="label"><span class="label-text">{{ form.postinstall_script.label }}</span></label>
+            {{ form.postinstall_script }}
+            <label class="label"><span class="label-text-alt">{{ form.postinstall_script.help_text }}</span></label>
+          </div>
+          <details class="collapse collapse-arrow bg-base-100">
+            <summary class="collapse-title font-medium">Settings override (JSON)</summary>
+            <div class="collapse-content">
+              {{ form.settings }}
+              <label class="label"><span class="label-text-alt">
+                Deep-merge поверх общих настроек HostSet и хоста.
+              </span></label>
+            </div>
+          </details>
+          <details class="collapse collapse-arrow bg-base-100">
+            <summary class="collapse-title font-medium">Hardening (JSON)</summary>
+            <div class="collapse-content">
+              {{ form.hardening }}
+              <label class="label"><span class="label-text-alt">
+                {"mode": "apply", "checks": [...]}
+              </span></label>
+            </div>
+          </details>
+        </div>
+
+      </div>
+
+      {# ---- Кнопки ---- #}
+      <div class="card-actions p-4 border-t border-base-300 justify-end gap-2">
+        <a href="{% url 'config:profile-list' %}" class="btn btn-ghost">Отмена</a>
+        <button type="submit" class="btn btn-primary">
+          {% if mode == 'create' %}Создать{% else %}Сохранить{% endif %}
+        </button>
+      </div>
+    </div>
+
+    {# ==================== Правая колонка: предпросмотр ==================== #}
+    <div class="card bg-base-200 shadow lg:sticky lg:top-4 h-fit">
+      <div class="card-body">
+        <h2 class="card-title text-base">Предпросмотр</h2>
+        <p class="text-xs opacity-60 mb-2">
+          Финальный конфиг для конкретного хоста с учётом всех применённых профилей
+          (по сохранённой версии).
+        </p>
+
+        {% if can_preview %}
+          <select name="preview_host" class="select select-bordered select-sm w-full mb-2"
+                  hx-get="{% url 'config:profile-preview' instance.slug %}"
+                  hx-target="#preview-result"
+                  hx-trigger="change"
+                  hx-include="this">
+            <option value="">— выберите хост —</option>
+            {% for h in preview_hosts %}
+              <option value="{{ h.pk }}">
+                {{ h.hostname }}{% if h.fqdn %} ({{ h.fqdn }}){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          <div id="preview-result" class="mt-2">
+            <p class="text-sm opacity-60">Выберите хост для предпросмотра</p>
+          </div>
+        {% elif instance %}
+          <p class="text-sm opacity-60">
+            Профиль ещё не применён ни к одному хосту.
+            Привяжите его к набору хостов или к отдельному хосту.
+          </p>
+        {% else %}
+          <p class="text-sm opacity-60">
+            Сохраните профиль, чтобы увидеть предпросмотр.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  [x-cloak] { display: none !important; }
+</style>
+{% endblock %}

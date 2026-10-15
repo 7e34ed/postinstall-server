@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Клиентские сертификаты{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Клиентские сертификаты</h1>
+    <a href="{% url 'access:my-security' %}" class="btn btn-ghost btn-sm">
+      ← Моя безопасность
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if certificates %}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Привязанные</h2>
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Метка</th><th>Fingerprint</th>
+              <th>Действует до</th><th>Статус</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in certificates %}
+              <tr>
+                <td>{{ c.label }}</td>
+                <td class="font-mono text-xs">
+                  {{ c.fingerprint_sha256|slice:":16" }}…
+                </td>
+                <td class="text-xs">
+                  {{ c.valid_to|date:"Y-m-d H:i"|default:"—" }}
+                </td>
+                <td>
+                  {% if c.is_active %}
+                    <span class="badge badge-success">активен</span>
+                  {% else %}
+                    <span class="badge badge-ghost">отозван</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if c.is_active %}
+                    <form method="post"
+                          action="{% url 'access:certificate-revoke' c.pk %}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Отозвать сертификат?');">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-error">Отозвать</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <p class="opacity-70">Сертификаты не привязаны.</p>
+  {% endif %}
+
+  {% if allow_self_enroll %}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Привязать новый сертификат</h2>
+
+        <p class="text-sm opacity-70">
+          Получите сертификат в вашем УЦ, экспортируйте его в PEM-формате
+          и вычислите SHA-256 fingerprint:
+        </p>
+        <pre class="bg-base-300 p-2 rounded text-xs overflow-x-auto">openssl x509 -in cert.pem -noout -fingerprint -sha256</pre>
+
+        <form method="post" class="space-y-3 mt-3">
+          {% csrf_token %}
+          {% for field in form %}
+            <div>
+              <label class="label"><span class="label-text">{{ field.label }}</span></label>
+              {{ field }}
+              {% if field.help_text %}
+                <small class="opacity-60">{{ field.help_text }}</small>
+              {% endif %}
+              {% if field.errors %}
+                <div class="text-error text-xs mt-1">
+                  {{ field.errors|join:", " }}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary">Привязать</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      Самостоятельная привязка сертификатов отключена. Обратитесь к
+      администратору.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load json_helpers %}
+
+{% block title %}{{ host.hostname }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-semibold">{{ host.hostname }}</h1>
+      <p class="text-sm opacity-60">
+        {{ host.fqdn|default:"" }}
+        · {{ host.domain.name }}
+        · {{ host.host_set.name }}
+      </p>
+    </div>
+    <div class="flex gap-2">
+      {% if can_deploy %}
+        <button class="btn btn-primary btn-sm"
+                hx-post="{% url 'deploy:host-apply' host.pk %}"
+                hx-confirm="Применить конфиг на {{ host.hostname }}?"
+                hx-swap="none">
+          Применить конфиг
+        </button>
+      {% endif %}
+      <a href="{% url 'inventory:host-list' %}" class="btn btn-ghost btn-sm">← К списку</a>
+    </div>
+  </div>
+
+  {% if active_deployment %}
+    <div class="alert alert-info mb-4">
+      <span>
+        Активная задача:
+        <a href="{% url 'deploy:detail' active_deployment.id %}" class="link">
+          {{ str(active_deployment.id)|slice:":8" }}
+        </a>
+        — {% include "deploy/_badge.html" with status=active_deployment.status %}
+      </span>
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    {# ---- Информация ---- #}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Информация</h2>
+        <table class="table table-sm">
+          <tbody>
+            <tr><td class="opacity-60">Hostname</td><td>{{ host.hostname }}</td></tr>
+            <tr><td class="opacity-60">FQDN</td><td>{{ host.fqdn|default:"—" }}</td></tr>
+            <tr><td class="opacity-60">IP</td><td>{{ host.ip_primary|default:"—" }}</td></tr>
+            <tr><td class="opacity-60">Платформа</td><td>{{ host.host_set.get_platform_display }}</td></tr>
+            <tr><td class="opacity-60">Управляемый</td><td>{{ host.managed|yesno:"да,нет" }}</td></tr>
+            <tr><td class="opacity-60">Источник</td><td>{{ host.get_source_display }}</td></tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 flex items-center gap-2">
+          {% if host.drift_detected_at %}
+            <span class="badge badge-warning">дрифт обнаружен</span>
+          {% elif not host.last_deployed_config_hash and agent %}
+            <span class="badge badge-ghost">ещё не деплоился</span>
+          {% elif host.last_deployed_config_hash %}
+            <span class="badge badge-success">синхронизирован</span>
+          {% endif %}
+
+          {% if host.drift_checked_at %}
+            <span class="text-xs opacity-60">
+              проверка: {{ host.drift_checked_at|date:"Y-m-d H:i" }}
+            </span>
+          {% endif %}
+
+          {% if can_deploy %}
+            <button class="btn btn-xs btn-ghost ml-auto"
+                    hx-post="{% url 'deploy:drift-rescan' host.pk %}"
+                    hx-swap="none"
+                    title="Пересчитать дрифт">
+              Проверить
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ---- Агент ---- #}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Агент</h2>
+        {% if agent %}
+          <table class="table table-sm">
+            <tbody>
+              <tr><td class="opacity-60">Agent ID</td>
+                  <td class="font-mono text-xs">{{ agent.agent_id }}</td></tr>
+              <tr><td class="opacity-60">Версия</td><td>{{ agent.version|default:"—" }}</td></tr>
+              <tr><td class="opacity-60">Активен</td><td>{{ agent.is_active|yesno:"да,нет" }}</td></tr>
+              <tr><td class="opacity-60">Последний контакт</td>
+                  <td>{{ agent.last_seen_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
+              <tr><td class="opacity-60">IP</td><td>{{ agent.last_seen_ip|default:"—" }}</td></tr>
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-sm opacity-60">Агент не зарегистрирован.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- История деплоев ---- #}
+  <div class="card bg-base-200 shadow mt-4">
+    <div class="card-body">
+      <div class="flex items-center justify-between">
+        <h2 class="card-title text-base">История развёртываний</h2>
+        <a href="{% url 'deploy:list' %}?host={{ host.pk }}" class="btn btn-ghost btn-xs">
+          Все →
+        </a>
+      </div>
+      {% if deployments %}
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>ID</th><th>Статус</th><th>Создан</th><th>Завершён</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in deployments %}
+              <tr>
+                <td class="font-mono text-xs">
+                  <a href="{% url 'deploy:detail' d.id %}" class="link">
+                    {{ d.id|slice:":8" }}
+                  </a>
+                </td>
+                <td>{% include "deploy/_badge.html" with status=d.status %}</td>
+                <td class="text-xs">{{ d.created_at|date:"Y-m-d H:i" }}</td>
+                <td class="text-xs">{{ d.finished_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td class="text-right">
+                  <a href="{% url 'deploy:detail' d.id %}" class="btn btn-xs btn-ghost">→</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-sm opacity-60">Пока не было развёртываний.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---- Финальный конфиг (collapsible) ---- #}
+  <div class="card bg-base-200 shadow mt-4">
+    <div class="card-body">
+      <h2 class="card-title text-base">Финальный конфиг (с учётом профилей)</h2>
+      <details class="collapse collapse-arrow bg-base-100">
+        <summary class="collapse-title text-sm font-medium">Settings</summary>
+        <div class="collapse-content">
+          <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ resolved_settings|pretty_json }}</pre>
+        </div>
+      </details>
+      <details class="collapse collapse-arrow bg-base-100 mt-2">
+        <summary class="collapse-title text-sm font-medium">Hardening</summary>
+        <div class="collapse-content">
+          <pre class="text-xs overflow-x-auto max-h-96 bg-base-300 rounded p-2">{{ resolved_hardening|pretty_json }}</pre>
+        </div>
+      </details>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

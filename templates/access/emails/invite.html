@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<body style="font-family: system-ui, sans-serif; background: #f5f5f5;
+             padding: 24px;">
+  <div style="max-width: 640px; margin: 0 auto; background: #ffffff;
+              border-radius: 8px; padding: 24px;">
+    <h2 style="color: #6419e6;">Приглашение в {{ site_name }}</h2>
+
+    <p>Вас пригласили в систему управления парком <strong>{{ site_name }}</strong>.</p>
+
+    <table style="border-collapse: collapse; margin: 16px 0;">
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Роль:</td>
+          <td><strong>{{ role }}</strong></td></tr>
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Область:</td>
+          <td>{{ scope_label }}</td></tr>
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Пригласил:</td>
+          <td>{{ invited_by.username }}</td></tr>
+      <tr><td style="padding: 4px 12px 4px 0; color: #666;">Действует до:</td>
+          <td>{{ expires_at|date:"Y-m-d H:i" }}</td></tr>
+    </table>
+
+    <p>
+      <a href="{{ accept_url }}"
+         style="display: inline-block; background: #6419e6; color: white;
+                padding: 12px 24px; border-radius: 6px;
+                text-decoration: none; font-weight: bold;">
+        Принять приглашение
+      </a>
+    </p>
+
+    <p style="color: #666; font-size: 14px;">
+      Если кнопка не работает, скопируйте ссылку в браузер:<br>
+      <code style="word-break: break-all;">{{ accept_url }}</code>
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+
+    <p style="color: #999; font-size: 13px;">
+      Если вы не ожидали этого письма — просто проигнорируйте его.
+    </p>
+  </div>
+</body>
+</html>

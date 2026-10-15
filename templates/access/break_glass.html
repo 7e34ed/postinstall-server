@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Break-glass{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Break-glass доступ</h1>
+    <a href="{% url 'access:my-security' %}" class="btn btn-ghost btn-sm">
+      ← Назад
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% elif m.tags == 'warning' %}warning{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="alert alert-info text-sm">
+    <div>
+      <strong>Управление break-glass — только через manage.py
+      с физического доступа к серверу.</strong>
+      Через UI доступен только просмотр состояния.
+    </div>
+  </div>
+
+  {% if not account %}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Не создан</h2>
+        <p class="text-sm">
+          Break-glass-учётка ещё не создана. Выполните с сервера:
+        </p>
+        <pre class="bg-base-300 p-2 rounded text-xs mt-2">sudo -u postinstall python manage.py bootstrap_break_glass</pre>
+      </div>
+    </div>
+  {% else %}
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Состояние</h2>
+
+        {% if currently_active %}
+          <div class="alert alert-warning">
+            <div>
+              <strong>Break-glass активен.</strong><br>
+              Включён {{ account.enabled_at|date:"Y-m-d H:i:s" }}
+              {% if account.enabled_by %} — {{ account.enabled_by.username }}{% endif %}.<br>
+              Авто-выключение через {{ account.auto_disable_after_hours }} ч.
+              {% if account.enabled_reason %}
+                <br>Причина: {{ account.enabled_reason }}
+              {% endif %}
+            </div>
+          </div>
+          <p class="text-xs mt-2">Досрочное выключение:</p>
+          <pre class="bg-base-300 p-2 rounded text-xs">sudo -u postinstall python manage.py break_glass disable</pre>
+        {% else %}
+          <p class="text-sm">
+            <span class="badge badge-ghost">Выключен</span>
+          </p>
+
+          {% if can_enable %}
+            <p class="text-sm mt-2">
+              <span class="badge badge-success badge-sm">условия соблюдены</span>
+              Активных SUPERVISOR'ов за последние 24 ч нет.
+            </p>
+          {% else %}
+            <p class="text-sm mt-2">
+              <span class="badge badge-warning badge-sm">условия не соблюдены</span>
+              {{ can_enable_reason }}
+            </p>
+          {% endif %}
+
+          <p class="text-xs mt-3">Включение:</p>
+          <pre class="bg-base-300 p-2 rounded text-xs">sudo -u postinstall python manage.py break_glass enable \
+    --reason "потерян доступ ко всем SUPERVISOR'ам"</pre>
+          <p class="text-xs mt-1">
+            Обход проверки «живых» SUPERVISOR'ов — добавьте
+            <code>--force</code>. Все действия пишутся в аудит.
+          </p>
+        {% endif %}
+
+        <table class="table table-sm mt-3">
+          <tbody>
+            <tr><td class="opacity-60">Логин</td>
+                <td class="font-mono">{{ account.user.username }}</td></tr>
+            <tr><td class="opacity-60">Последнее использование</td>
+                <td>{{ account.last_used_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
+            <tr><td class="opacity-60">Всего использований</td>
+                <td>{{ account.use_count }}</td></tr>
+            <tr><td class="opacity-60">Авто-выключение</td>
+                <td>через {{ account.auto_disable_after_hours }} ч</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow">
+      <div class="card-body">
+        <h2 class="card-title text-base">Пароль</h2>
+        <p class="text-sm">
+          Пароль break-glass хранится только в recovery kit
+          (физический сейф). При потере — пересоздание:
+        </p>
+        <pre class="bg-base-300 p-2 rounded text-xs mt-2">sudo -u postinstall python manage.py break_glass reset-kit --out /tmp/</pre>
+        <p class="text-xs mt-1">
+          Старый kit после этого уничтожить.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="alert alert-warning text-sm">
+    <div>
+      <strong>Меры безопасности:</strong>
+      <ul class="list-disc ml-5 mt-1">
+        <li>Включение только с физического доступа к серверу.</li>
+        <li>Отказ, если есть активные SUPERVISOR'ы за 24 ч.</li>
+        <li>Сессия сразу AAL3 — критичные операции доступны.</li>
+        <li>Уведомление всех SUPERVISOR'ов по email.</li>
+        <li>Авто-выключение через 24 ч.</li>
+        <li>Все входы пишутся в аудит с флагом <code>BREAK_GLASS_USED</code>.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

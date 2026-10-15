@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head><meta charset="utf-8"><title>Доступ ограничен</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #1d232a;
+       color: #a6adba; margin: 0; min-height: 100vh; padding: 3rem 1rem; }
+.box { max-width: 560px; margin: 0 auto; background: #242b34;
+       padding: 2rem; border-radius: 8px; }
+h1 { color: #ef4444; margin-top: 0; }
+code { background: #1d232a; padding: 2px 6px; border-radius: 3px; }
+</style></head>
+<body>
+  <div class="box">
+    <h1>Доступ ограничен по IP</h1>
+    <p>Для учётной записи <strong>{{ user.username }}</strong> включён
+       IP-allowlist, и текущий адрес в него не входит.</p>
+    <p style="opacity: .7; font-size: .9em;">Причина: {{ reason }}</p>
+    <p>Обратитесь к администратору, чтобы добавить ваш адрес в правила,
+       или войдите из разрешённой сети (VPN/офис).</p>
+  </div>
+</body>
+</html>

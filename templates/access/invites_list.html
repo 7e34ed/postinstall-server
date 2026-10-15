@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Приглашения{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-4">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Приглашения</h1>
+    <a class="btn btn-primary btn-sm" href="{% url 'access:invite-create' %}">
+      + Создать приглашение
+    </a>
+  </div>
+
+  {% if pending_approval %}
+    <div class="alert alert-warning">
+      <div>
+        <h3 class="font-bold">Ожидают подтверждения (consensus)</h3>
+        <p class="text-sm opacity-80">
+          Инвайты ADMIN/SUPERVISOR требуют подписи второго SUPERVISOR'а.
+          Тот, кто создал инвайт, не может его подтвердить.
+        </p>
+        <table class="table table-sm mt-2">
+          <thead>
+            <tr><th>Email</th><th>Роль</th><th>Scope</th>
+                <th>Инициатор</th><th>Подписи</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for inv in pending_approval %}
+              <tr>
+                <td>{{ inv.email }}</td>
+                <td>{{ inv.role }}</td>
+                <td>{{ inv.scope_type }}:{{ inv.scope_id }}</td>
+                <td>{{ inv.invited_by.username }}</td>
+                <td>{{ inv.approvals_count }}/{{ inv.required_approvals }}</td>
+                <td>
+                  {% if inv.invited_by_id == user.pk %}
+                    <span class="badge badge-ghost">
+                      ждём второго SUPERVISOR'а
+                    </span>
+                  {% else %}
+                    <form method="post"
+                          action="{% url 'access:invite-approve' inv.id %}"
+                          style="display:inline;">
+                      {% csrf_token %}
+                      <button class="btn btn-xs btn-success">Подтвердить</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <form method="get" class="flex gap-2 mb-4">
+        <input type="text" name="q" value="{{ q }}" placeholder="Email…"
+               class="input input-bordered input-sm">
+        <select name="status" class="select select-bordered select-sm">
+          <option value="">— все статусы —</option>
+          {% for value, label in statuses %}
+            <option value="{{ value }}"
+                    {% if status_filter == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-primary">Фильтр</button>
+        {% if q or status_filter %}
+          <a href="{% url 'access:invites-list' %}"
+             class="btn btn-ghost btn-sm">Сбросить</a>
+        {% endif %}
+      </form>
+
+      {% if rows %}
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Email</th><th>Роль</th><th>Scope</th>
+                <th>Статус</th><th>Создан</th><th>Истекает</th>
+                <th>Принят</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rows %}
+                <tr>
+                  <td>{{ r.invitation.email }}</td>
+                  <td>{{ r.invitation.role }}</td>
+                  <td class="text-xs">{{ r.scope_label }}</td>
+                  <td>
+                    {% if r.invitation.status == "pending" %}
+                      <span class="badge badge-info">Ожидает</span>
+                    {% elif r.invitation.status == "pending_approval" %}
+                      <span class="badge badge-warning">
+                        consensus {{ r.approvals }}/{{ r.required_approvals }}
+                      </span>
+                    {% elif r.invitation.status == "accepted" %}
+                      <span class="badge badge-success">Принят</span>
+                    {% elif r.invitation.status == "expired" %}
+                      <span class="badge badge-ghost">Истёк</span>
+                    {% elif r.invitation.status == "revoked" %}
+                      <span class="badge">Отозван</span>
+                    {% elif r.invitation.status == "rejected" %}
+                      <span class="badge badge-error">Отклонён</span>
+                    {% else %}
+                      <span class="badge">{{ r.invitation.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-xs">{{ r.invitation.created_at|date:"Y-m-d H:i" }}</td>
+                  <td class="text-xs">{{ r.invitation.expires_at|date:"Y-m-d H:i" }}</td>
+                  <td class="text-xs">
+                    {% if r.invitation.accepted_by %}
+                      {{ r.invitation.accepted_by.username }}
+                      <br><small>{{ r.invitation.accepted_at|date:"Y-m-d H:i" }}</small>
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-right whitespace-nowrap">
+                    {% if r.invitation.status == "pending" %}
+                      <form method="post"
+                            action="{% url 'access:invite-resend' r.invitation.id %}"
+                            style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-xs btn-ghost"
+                                title="Переотправить">✉</button>
+                      </form>
+                    {% endif %}
+                    {% if r.invitation.status in "pending,pending_approval" %}
+                      <form method="post"
+                            action="{% url 'access:invite-revoke' r.invitation.id %}"
+                            style="display:inline;"
+                            onsubmit="return confirm('Отозвать инвайт?');">
+                        {% csrf_token %}
+                        <button class="btn btn-xs btn-ghost text-error">✕</button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page.has_other_pages %}
+          <div class="flex gap-2 mt-3">
+            {% if page.has_previous %}
+              <a href="?page={{ page.previous_page_number }}&q={{ q }}&status={{ status_filter }}"
+                 class="btn btn-sm">← Назад</a>
+            {% endif %}
+            <span class="text-sm opacity-70 px-2 py-2">
+              Стр. {{ page.number }} из {{ page.paginator.num_pages }}
+            </span>
+            {% if page.has_next %}
+              <a href="?page={{ page.next_page_number }}&q={{ q }}&status={{ status_filter }}"
+                 class="btn btn-sm">Вперёд →</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <p class="opacity-60">Приглашений нет.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

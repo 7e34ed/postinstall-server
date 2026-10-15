@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Усиленный режим безопасности{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h1 class="card-title">Усиленный режим безопасности</h1>
+
+      {% if messages %}
+        {% for m in messages %}
+          <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+            {{ m }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="alert
+        {% if enabled %}alert-warning{% else %}alert-info{% endif %}">
+        <span>
+          Режим сейчас: <strong>{% if enabled %}ВКЛЮЧЁН{% else %}выключен{% endif %}</strong>
+        </span>
+      </div>
+
+      <p class="text-sm">
+        Когда режим включён, SUPERVISOR и ADMIN обязаны иметь
+        hardware-фактор для операций AAL3 (изменение backend секретов,
+        назначение ролей, работа с credentials). Если hardware-фактора
+        нет — при попытке такой операции система потребует
+        reauthenticate через доступный AAL2 (TOTP) с дополнительным
+        двухсторонним подтверждением.
+      </p>
+
+      <p class="text-sm opacity-70">
+        Ваш текущий AAL: <strong>{{ current_aal }}</strong>.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle">
+        <button type="submit" class="btn
+          {% if enabled %}btn-warning{% else %}btn-primary{% endif %}">
+          {% if enabled %}Выключить{% else %}Включить{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

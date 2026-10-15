@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -218,3 +219,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+=======
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.env
+db.sqlite3
+media/
+staticfiles/
+static/dist/
+node_modules/
+frontend/node_modules/
+.pytest_cache/
+.ruff_cache/
+.vite/
+_ci/
+logs/
+uv.lock  # ← НЕТ! Не добавлять, коммитим
+.secrets/
+*.master.key
+>>>>>>> 00de36d (Initial commit: postinstall server)

@@ -1,0 +1,11 @@
+.venv
+.uv
+node_modules
+.git
+.env
+staticfiles
+media
+_ci
+.pytest_cache
+.ruff_cache
+logs

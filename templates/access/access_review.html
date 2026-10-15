@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Access review{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold">Access review</h1>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="start">
+      <button class="btn btn-primary btn-sm"
+              onclick="return confirm('Запустить review всех активных ролей?');">
+        Запустить новый
+      </button>
+    </form>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{% if m.tags == 'error' %}error{% else %}info{% endif %} text-sm">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card bg-base-200 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-base">История</h2>
+      {% if runs %}
+        <table class="table table-sm">
+          <thead>
+            <tr><th>ID</th><th>Начат</th><th>Статус</th>
+                <th>Всего</th><th>OK</th><th>Отозвано</th>
+                <th>Ожидает</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for r in runs %}
+              <tr>
+                <td class="font-mono text-xs">{{ r.id|slice:":8" }}</td>
+                <td class="text-xs">{{ r.started_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                  {% if r.status == "running" %}
+                    <span class="badge badge-info">выполняется</span>
+                  {% elif r.status == "completed" %}
+                    <span class="badge badge-success">завершён</span>
+                  {% else %}
+                    <span class="badge">{{ r.status }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ r.total_assignments }}</td>
+                <td>{{ r.confirmed }}</td>
+                <td>{{ r.revoked }}</td>
+                <td>{{ r.pending }}</td>
+                <td class="text-right">
+                  <a href="{% url 'access:access-review-detail' r.id %}"
+                     class="btn btn-xs btn-ghost">Открыть</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="opacity-60">Прогонов ещё не было.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

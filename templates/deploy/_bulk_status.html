@@ -1,0 +1,35 @@
+<div id="bulk-status" class="card bg-base-200 shadow">
+  <div class="card-body">
+    <div class="flex items-center gap-4">
+      {% if bulk.status == "pending" %}
+        <span class="badge badge-ghost">Ожидает</span>
+      {% elif bulk.status == "running" %}
+        <span class="badge badge-info">Выполняется</span>
+      {% elif bulk.status == "success" %}
+        <span class="badge badge-success">Успешно</span>
+      {% elif bulk.status == "partial" %}
+        <span class="badge badge-warning">Частично</span>
+      {% elif bulk.status == "failed" %}
+        <span class="badge badge-error">Ошибка</span>
+      {% elif bulk.status == "cancelled" %}
+        <span class="badge">Отменён</span>
+      {% endif %}
+
+      <div class="text-sm opacity-70">
+        Готово: {{ bulk.succeeded }} / {{ bulk.total }}
+        {% if bulk.failed %} · ошибок: {{ bulk.failed }}{% endif %}
+        {% if bulk.cancelled_count %} · отменено: {{ bulk.cancelled_count }}{% endif %}
+      </div>
+
+      {% if not is_final %}
+        <span class="loading loading-spinner loading-sm ml-auto"></span>
+      {% endif %}
+    </div>
+
+    <div class="mt-2">
+      <progress class="progress progress-info w-full"
+                value="{{ bulk.progress_pct }}" max="100"></progress>
+      <div class="text-xs opacity-60 mt-1">{{ bulk.progress_pct }}%</div>
+    </div>
+  </div>
+</div>

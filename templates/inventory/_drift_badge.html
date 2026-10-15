@@ -1,0 +1,15 @@
+{% if record.drift_detected_at %}
+  <span class="badge badge-warning badge-sm" title="Обнаружен {{ record.drift_detected_at|date:'Y-m-d H:i' }}">
+    drift
+  </span>
+{% elif not record.last_deployed_config_hash and record.agent %}
+  <span class="badge badge-ghost badge-sm" title="Ещё ни разу не деплоился">
+    unsync
+  </span>
+{% elif record.last_deployed_config_hash %}
+  <span class="badge badge-success badge-sm" title="Синхронизирован {{ record.last_deployed_at|date:'Y-m-d H:i' }}">
+    ok
+  </span>
+{% else %}
+  <span class="text-xs opacity-40">—</span>
+{% endif %}

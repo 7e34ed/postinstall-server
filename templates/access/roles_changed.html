@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Права изменены</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #1d232a;
+           color: #a6adba; margin: 0; min-height: 100vh; padding: 2rem; }
+    .box { max-width: 720px; margin: 0 auto; background: #3b1d1d;
+           border: 2px solid #ef4444; border-radius: 8px; padding: 2rem; }
+    h1 { color: #ef4444; margin-top: 0; }
+    ul { padding-left: 1.2rem; }
+    code { background: #1d232a; padding: 2px 6px; border-radius: 3px; }
+    button { background: #ef4444; color: white; padding: .6rem 1.2rem;
+             border-radius: 6px; border: none; cursor: pointer;
+             margin-top: 1rem; }
+    .change { padding: .5rem; background: #1d232a; border-radius: 4px;
+              margin: .5rem 0; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Ваши права были изменены</h1>
+
+    <p>
+      Администратор внёс изменения в ваши роли. Для безопасности
+      необходимо ознакомиться и подтвердить, что вы уведомлены.
+    </p>
+    <p>
+      <strong>Даже если вы обновите страницу — вы снова увидите это
+      уведомление.</strong> Все остальные действия заблокированы до
+      подтверждения.
+    </p>
+
+    <h3>Изменения:</h3>
+    {% for c in changes %}
+      <div class="change">
+        {{ c.kind }}:
+        {{ c.role }} @ {{ c.scope_type }}{% if c.scope_id %}:{{ c.scope_id }}{% endif %}
+        {% if c.reason %}<br><small>Причина: {{ c.reason }}</small>{% endif %}
+      </div>
+    {% endfor %}
+
+    <p style="margin-top: 1.5rem;">
+      После подтверждения вы будете разлогинены. При следующем входе
+      вступят в силу новые права.
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="acknowledge">
+      <button type="submit">Я ознакомлен, выйти</button>
+    </form>
+  </div>
+</body>
+</html>
