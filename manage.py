@@ -4,8 +4,14 @@ import sys
 
 
 def main():
+    # from django.core.exceptions import ImproperlyConfigured
+    # from dotenv import load_dotenv
+
+    # load_dotenv(verbose=True)
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     os.environ.setdefault("DJANGO_CONFIGURATION", "Development")
+    
     try:
         from configurations.management import execute_from_command_line
     except ImportError as exc:

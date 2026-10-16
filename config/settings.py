@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -22,14 +23,17 @@ class Base(Configuration):
     # site id
     SITE_ID = 1
 
+    # --- Пути ---
+    BASE_DIR = BASE_DIR
+
+    # DOTENV
+    DOTENV = os.path.join(BASE_DIR, '.env')
+
     # --- Безопасность ---
     SECRET_KEY = values.SecretValue()
     DEBUG = values.BooleanValue(False)
     ALLOWED_HOSTS = values.ListValue(["localhost", "127.0.0.1"])
     CSRF_TRUSTED_ORIGINS = values.ListValue([])
-
-    # --- Пути ---
-    BASE_DIR = BASE_DIR
 
     # --- Приложения ---
     INSTALLED_APPS = [
@@ -71,6 +75,8 @@ class Base(Configuration):
         # Наши приложения
         "apps.core",
         "apps.access",
+
+        # -- > отсюда будем проверять приложения
         "apps.audit",
         "apps.inventory",
         "apps.config",
@@ -134,8 +140,6 @@ class Base(Configuration):
     DATABASES = values.DatabaseURLValue(
         "postgres://postinstall:postinstall@localhost:5432/postinstall",
     )
-    DATABASES["default"]["CONN_MAX_AGE"] = 60
-    DATABASES["default"]["ATOMIC_REQUESTS"] = False
 
     DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -156,7 +160,7 @@ class Base(Configuration):
     ]
 
     ANONYMOUS_USER_NAME = None
-    GUARDIAN_MONKEY_PATCH = True
+    GUARDIAN_MONKEY_PATCH_USER = True
 
     # --- i18n ---
     LANGUAGE_CODE = "ru-ru"
@@ -376,8 +380,8 @@ class Base(Configuration):
     # Мастер-ключ нигде не хранится на сервере. Ищем по цепочке:
     # FILE → FD → ENV → (опционально) TTY.
     SECRETS_MASTER_KEY_FILE = values.Value("")
-    SECRETS_MASTER_KEY_FD = values.IntegerValue(0)
-    SECRETS_MASTER_KEY = values.SecretValue("")
+    SECRETS_MASTER_KEY_FD = values.IntegerValue(-1)
+    SECRETS_MASTER_KEY = values.Value("")
     SECRETS_ALLOW_INTERACTIVE = values.BooleanValue(False)
 
     # --- Argon2id ---
@@ -410,7 +414,7 @@ class Base(Configuration):
     EMAIL_HOST = values.Value("")
     EMAIL_PORT = values.IntegerValue(587)
     EMAIL_HOST_USER = values.Value("")
-    EMAIL_HOST_PASSWORD = values.SecretValue("")
+    EMAIL_HOST_PASSWORD = values.Value("")
     EMAIL_USE_TLS = values.BooleanValue(True)
     EMAIL_USE_SSL = values.BooleanValue(False)
     DEFAULT_FROM_EMAIL = values.Value("noreply@postinstall.local")
@@ -474,7 +478,16 @@ class Base(Configuration):
 
     @classmethod
     def post_setup(cls):
-        """Настройка loguru после инициализации Configuration."""
+        """
+        Настройка 
+          1. database
+          2. loguru 
+        после инициализации Configuration.
+        """
+        
+        cls.DATABASES["default"]["CONN_MAX_AGE"] = 60
+        cls.DATABASES["default"]["ATOMIC_REQUESTS"] = False        
+                
         cls._setup_loguru()
         cls._setup_secrets_runtime()
 
@@ -585,7 +598,7 @@ class Production(Base):
     # --- Статика в S3 ---
     STATIC_STORAGE = "s3"
     AWS_ACCESS_KEY_ID = values.Value("")
-    AWS_SECRET_ACCESS_KEY = values.SecretValue("")
+    AWS_SECRET_ACCESS_KEY = values.Value("")
     AWS_STORAGE_BUCKET_NAME = values.Value("")
     AWS_S3_ENDPOINT_URL = values.Value("")
     AWS_S3_REGION_NAME = values.Value("")
@@ -654,7 +667,7 @@ class Testing(Base):
     """Для pytest."""
 
     DEBUG = False
-    SECRET_KEY = "testing-key-not-secret"
+    # SECRET_KEY = "testing-key-not-secret"
 
     DATABASES = values.DatabaseURLValue(
         "postgres://postinstall:postinstall@localhost:5432/postinstall_test",

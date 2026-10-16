@@ -1,14 +1,19 @@
 import os
 
 from celery import Celery
+from dotenv import load_dotenv
 
+load_dotenv()
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 os.environ.setdefault("DJANGO_CONFIGURATION", "Development")
 
-# ВАЖНО: configurations.setup() нужно вызвать до обращения к django.conf.settings
-import configurations  # type: ignore # noqa: E402
+def _ensure_django_setup():
+    from django.apps import apps
+    if not apps.ready:
+        import configurations
+        configurations.setup()
 
-configurations.setup()
+_ensure_django_setup()
 
 app = Celery("postinstall")
 app.config_from_object("django.conf:settings", namespace="CELERY")

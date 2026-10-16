@@ -2,13 +2,14 @@
 name = "postinstall-server"
 version = "0.1.0"
 description = "postinstall-server: source of truth for psi-agent"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.15"
 dependencies = [
-    "django>=5.1,<5.2",
+    "django>=5.1,<5.3",
     "django-configurations>=2.5.1",
-    "psycopg[binary]>=3.2",
-    "redis>=5.0",
-    "celery[redis]>=5.3",
+    "dj-database-url>=2.1",
+    "psycopg[binary]>=3.2.9",
+    "redis>=7.1.0",
+    "celery[redis]>=5.6.0",
     "djangorestframework>=3.15",
     "drf-spectacular>=0.27",
     "django-filter>=24.1",
@@ -33,6 +34,9 @@ dependencies = [
     "qrcode[pil]>=8.0",
     "pyotp>=2.9",
     "pyrad>=2.4,<3",        # radius backend библиотека для работы с Aladdin
+    "python-dotenv>=1.2.4",
+    "cryptography>=50.0.2",
+    "fido2>=2.2.1",
 ]
 
 [project.optional-dependencies]

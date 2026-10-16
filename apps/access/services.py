@@ -30,7 +30,7 @@ from .permissions import active_roles, can_manage_role, get_active_supervisors
 from .roles import DUAL_APPROVAL_ROLES, Role, ScopeType
 
 User = get_user_model()
-USER = TypeVar(User)
+USER = TypeVar("USER", bound=User)
 
 def _invite_ttl_hours(role: str) -> int:
     if role in {r.value for r in DUAL_APPROVAL_ROLES}:

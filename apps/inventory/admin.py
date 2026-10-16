@@ -11,7 +11,7 @@ class DomainAdmin(ModelAdmin, GuardedModelAdmin):
                     "ldap_last_sync_at")
     search_fields = ("name",)
     list_filter = ("ldap_sync_enabled",)
-    autocomplete_fields = ("domain_join_secret",)
+    # autocomplete_fields = ("domain_join_secret",)
 
 
 class HostInline(TabularInline):

@@ -285,6 +285,30 @@ def list_records(prefix: str = "") -> dict[str, dict[str, str]]:
     return records
 
 
+def get_record(path: str, *, backend: str | None = None) -> dict[str, str]:
+    """Вернуть все key: value для одного path.
+
+    Используется в UI редактирования: показать все ключи записи.
+    Возвращает {} при ошибке или если записи нет.
+    """
+    if not path:
+        return {}
+    try:
+        b = get_backend(backend)
+    except (SecretsSealed, SecretBackendError):
+        return {}
+
+    result: dict[str, str] = {}
+    try:
+        for p, k, v in b.iter_secrets():
+            if p == path:
+                result[k] = v
+    except Exception as exc:
+        logger.error(f"secrets: get_record {path}: {exc}")
+        return {}
+    return result
+
+
 def record_exists(path: str) -> bool:
     try:
         b = get_backend()
@@ -670,7 +694,7 @@ def cancel_transfer(transfer: SecretOwnershipTransfer, *, by_user,
 
 __all__ = [
     "get_secret", "set_secret", "delete_secret",
-    "list_paths", "list_records", "record_exists",
+    "list_paths", "list_records", "get_record", "record_exists",
     "get_ref", "list_refs", "touch_ref",
     "list_backends", "get_active_backend", "set_active_backend",
     "get_backend_credentials", "set_backend_credentials",

@@ -1,3 +1,5 @@
+=== docs/break-glass.md ===
+
 # Break-glass: аварийный доступ
 
 ## Что это

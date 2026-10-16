@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import HostDetailView, HostListView, host_detail_view
+from .views import HostListView, host_detail_view
 
 app_name = "inventory"
 

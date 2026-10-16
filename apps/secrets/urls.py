@@ -27,12 +27,12 @@ urlpatterns = [
     path("items/<path:path>/keys/<str:key>/delete/",
          admin_views.item_key_delete, name="item-key-delete"),
 
-    path("items/<path:path>/grant/", admin_views.grant_create,
+    path("items/<path:path>/grant/", views.grant_create,
          name="grant-create"),
     path("items/<path:path>/grant/<int:grant_id>/revoke/",
-         admin_views.grant_revoke, name="grant-revoke"),
-    path("items/<path:path>/transfer/", admin_views.transfer_initiate,
+         views.grant_revoke, name="grant-revoke"),
+    path("items/<path:path>/transfer/", views.transfer_initiate,
          name="transfer-initiate"),
     path("transfers/<uuid:transfer_id>/approve/",
-         admin_views.transfer_approve, name="transfer-approve"),
+         views.transfer_approve, name="transfer-approve"),
 ]

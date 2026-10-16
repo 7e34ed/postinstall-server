@@ -99,7 +99,6 @@ def roles_list(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def role_assign(request: HttpRequest) -> HttpResponse:
     from .permissions import (
-        can_manage_role,
         is_supervisor,
         roles_user_can_manage,
     )
@@ -268,7 +267,7 @@ def invites_list(request: HttpRequest) -> HttpResponse:
 @rate_limit(limit=30, window=3600, key_prefix="secrets_backend_change")
 @require_http_methods(["GET", "POST"])
 def invite_create(request: HttpRequest) -> HttpResponse:
-    from .roles import ROLE_LABELS, Role
+    from .roles import ROLE_LABELS
     from .services import create_invitation_and_send
 
     user = request.user
@@ -990,6 +989,5 @@ def ip_rules_page(request):
 
 
 def _all_role_values():
-    from .roles import Role
     return list(Role)
 

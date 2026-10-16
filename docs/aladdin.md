@@ -1,3 +1,5 @@
+=== docs/aladdin.md ===
+
 # RADIUS / Aladdin 2FA Server
 
 ## Что это

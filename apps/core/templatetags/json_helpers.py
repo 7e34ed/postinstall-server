@@ -1,3 +1,5 @@
+# apps.core.templatetags.json_helpers.py
+
 import json
 
 from django import template

@@ -7,13 +7,10 @@ from allauth.account.signals import (
 from allauth.account.signals import (
     user_logged_out as allauth_user_logged_out,
 )
-from allauth.account.signals import (
-    user_login_failed,
-)
+from django.contrib.auth.signals import user_login_failed
 from django.dispatch import receiver
 from loguru import logger
 
-from apps.access.auth_backends import _get_auth_source
 from apps.core.utils import get_client_ip, get_user_agent
 
 from .models import AuthAuditLog, log_auth_event
@@ -21,8 +18,8 @@ from .models import AuthAuditLog, log_auth_event
 
 @receiver(allauth_user_logged_in)
 def _log_login_success(sender, request, user, **kwargs):
-    from .session_aal import set_aal
     from .aal import AAL
+    from .session_aal import set_aal
 
     # --- Break-glass: AAL3 + отдельный аудит ---
     is_break_glass = False
@@ -104,31 +101,3 @@ def _log_login_failed(sender, credentials, request, **kwargs):
         success=False,
         detail={"login": username},
     )
-
-
-@receiver(allauth_user_logged_in)
-def _log_login_success(sender, request, user, **kwargs):
-    # AAL1 базово
-    try:
-        from .aal import AAL
-
-        # Если пользователь radius — считаем AAL2 (RADIUS уже сделал
-        # пароль+OTP в одном запросе)
-        from .radius_utils import get_auth_source
-        from .session_aal import set_aal
-        
-        # source = getattr(user, "auth_source", "local")
-        source = get_auth_source(user)
-
-        level = AAL.AAL2 if source == "radius" else AAL.AAL1
-        if request and hasattr(request, "session"):
-            set_aal(request, level)
-    except Exception:
-        logger.exception("access: cannot set AAL on login")
-
-    log_auth_event(
-        AuthAuditLog.Event.LOGIN_SUCCESS,
-        user=user, ip=get_client_ip(request), user_agent=get_user_agent(request),
-        detail={"auth_source": getattr(user, "auth_source", "local")},
-    )
-    logger.info(f"access: login success {user.username}")

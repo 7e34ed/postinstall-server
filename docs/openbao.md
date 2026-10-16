@@ -1,3 +1,5 @@
+=== docs/openbao.md ===
+
 # OpenBao: развёртывание и интеграция
 
 OpenBao — открытый форк HashiCorp Vault (MPL 2.0). Мы используем его как
