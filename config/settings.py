@@ -214,6 +214,7 @@ class Base(Configuration):
 
     # --- Constance ---
     CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+    # CONSTANCE_BACKEND = "constance.backends.redisd.RedisBackend"
     CONSTANCE_DATABASE_CACHE_BACKEND = "default"
     CONSTANCE_CONFIG = {
         # Секреты и движок
@@ -341,11 +342,12 @@ class Base(Configuration):
     }
 
     # --- Redis ---
-    REDIS_URL = values.Value("redis://localhost:6379/0")
+    REDIS_URL = values.Value("redis://localhost:6379/0")    # удалить (используется _setup_redis)
+
+    # need to remove, override in _setup_redis
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": values.Value("redis://localhost:6379/0"),
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         }
     }
 
@@ -484,12 +486,47 @@ class Base(Configuration):
           2. loguru 
         после инициализации Configuration.
         """
-        
-        cls.DATABASES["default"]["CONN_MAX_AGE"] = 60
-        cls.DATABASES["default"]["ATOMIC_REQUESTS"] = False        
-                
+
+        # --- remove after use ---
+        import sys
+        print(f"[DEBUG] DATABASES: {cls.DATABASES}", file=sys.stderr)
+        print(f"[DEBUG] REDIS_URL: {cls.REDIS_URL!r}", file=sys.stderr)
+        print(f"[DEBUG] SECRETS_MASTER_KEY_FILE: {cls.SECRETS_MASTER_KEY_FILE!r}", file=sys.stderr)
+        print(f"[DEBUG] DOTENV path: {getattr(cls, 'DOTENV', '?')}", file=sys.stderr)
+        # --- end ---
+
+        cls._setup_db()
+        cls._setup_redis()
         cls._setup_loguru()
         cls._setup_secrets_runtime()
+
+    @classmethod
+    def _setup_db(cls):
+        cls.DATABASES["default"]["CONN_MAX_AGE"] = 60
+        cls.DATABASES["default"]["ATOMIC_REQUESTS"] = False
+
+    @classmethod
+    def _setup_redis(cls):
+        url = (cls.REDIS_URL or "redis://localhost:6379/0").strip()
+        
+        # ВАЖНО: мутируем тот же объект, что установлен в mod.CACHES
+        cls.CACHES["default"]["BACKEND"] = (
+            "django.core.cache.backends.redis.RedisCache"
+        )
+        cls.CACHES["default"]["LOCATION"] = url
+
+        # Если кто-то (allauth ratelimit) уже обращался к cache — сбросить
+        try:
+            from django.core.cache import caches
+            caches._caches.clear()
+        except Exception:
+            pass
+
+        import sys
+        print(
+            f"[DEBUG] _setup_redis: {cls.CACHES}",
+            file=sys.stderr,
+        )
 
     @classmethod
     def _setup_loguru(cls):
@@ -542,9 +579,10 @@ class Development(Base):
     DJANGO_VITE = {
         "default": {
             "dev_mode": True,
-            "manifest_path": BASE_DIR / "static" / "dist" / ".vite" / "manifest.json",
+            # "manifest_path": BASE_DIR / "static" / "dist" / ".vite" / "manifest.json",
             "dev_server_port": 5173,
             "dev_server_host": "127.0.0.1",
+            "static_url_prefix": "/", 
         }
     }
 
@@ -552,6 +590,11 @@ class Development(Base):
 
     # Email
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+    # Recovery kit пишется в проекте, а не в /var/lib
+    ACCESS_RECOVERY_KIT_DIR = values.Value(
+        str(BASE_DIR / "recovery-kit"),
+    )
 
     @classmethod
     def post_setup(cls):

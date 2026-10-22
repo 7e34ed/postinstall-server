@@ -240,3 +240,4 @@ uv.lock  # ← НЕТ! Не добавлять, коммитим
 .secrets/
 *.master.key
 >>>>>>> 00de36d (Initial commit: postinstall server)
+recovery-kit/

@@ -188,7 +188,13 @@ def invite_landing(request, token):
 
 def _get_or_create_user(username: str, email: str):
     try:
-        return User.objects.get(username=username)
+        user = User.objects.get(username=username)
+        if user.is_superuser:
+            raise ValueError(
+                f"{username} — superuser (bootstrap). "
+                f"Введите username нового SUPERVISOR'а, отличного от superuser."
+            )
+        return user
     except User.DoesNotExist:
         return User.objects.create_user(
             username=username,

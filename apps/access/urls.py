@@ -11,6 +11,7 @@ urlpatterns = [
      path("invite/<str:token>/", views.invite_accept, name="invite-accept"),
 
      # UI инвайтов
+     path("", _admin.roles_list),
      path("invites/", _admin.invites_list, name="invites-list"),
      path("invites/new/", _admin.invite_create, name="invite-create"),
      path("invites/<uuid:pk>/approve/", _admin.invite_approve,

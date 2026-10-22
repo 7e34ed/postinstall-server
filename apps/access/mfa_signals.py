@@ -1,36 +1,28 @@
 """Аудит enrollment/disable TOTP через allauth.mfa."""
-from __future__ import annotations
-
+# apps/access/mfa_signals.py
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from loguru import logger
 
-try:
-    from allauth.mfa.signals import (
-        authenticator_created,
-        authenticator_deleted,
-    )
-except ImportError:
-    authenticator_created = None
-    authenticator_deleted = None
-
 from .models import AuthAuditLog, log_auth_event
 
-if authenticator_created is not None:
 
-    @receiver(authenticator_created)
-    def _log_mfa_enrolled(sender, request, user, authenticator, **kwargs):
-        log_auth_event(
-            AuthAuditLog.Event.MFA_ENROLLED,
-            user=user,
-            detail={"type": str(getattr(authenticator, "type", "unknown"))},
-        )
-        logger.info(f"access: MFA enrolled for {user.username}")
+@receiver(post_save, sender="mfa.Authenticator")
+def _log_mfa_enrolled(sender, instance, created, **kwargs):
+    if not created:
+        return
+    log_auth_event(
+        AuthAuditLog.Event.MFA_ENROLLED,
+        user=instance.user,
+        detail={"type": str(getattr(instance, "type", "unknown"))},
+    )
+    logger.info(f"access: MFA enrolled for {instance.user.username}")
 
-    @receiver(authenticator_deleted)
-    def _log_mfa_disabled(sender, request, user, authenticator, **kwargs):
-        log_auth_event(
-            AuthAuditLog.Event.MFA_DISABLED,
-            user=user,
-            detail={"type": str(getattr(authenticator, "type", "unknown"))},
-        )
-        logger.info(f"access: MFA disabled for {user.username}")
+
+@receiver(post_delete, sender="mfa.Authenticator")
+def _log_mfa_disabled(sender, instance, **kwargs):
+    log_auth_event(
+        AuthAuditLog.Event.MFA_DISABLED,
+        user=instance.user,
+        detail={"type": str(getattr(instance, "type", "unknown"))},
+    )

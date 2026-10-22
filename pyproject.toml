@@ -2,7 +2,7 @@
 name = "postinstall-server"
 version = "0.1.0"
 description = "postinstall-server: source of truth for psi-agent"
-requires-python = ">=3.12,<3.15"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "django>=5.1,<5.3",
     "django-configurations>=2.5.1",

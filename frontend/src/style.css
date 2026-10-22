@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@source "../../templates/**/*.html";
+@source "../../apps/**/templates/**/*.html";
+@source "./src/**/*.{js,css}";
+
+@plugin "daisyui" {
+  themes: dark --default, light;
+}
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";

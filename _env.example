@@ -65,3 +65,6 @@ AUDIT_SYSLOG_HOST=syslog.local
 AUDIT_SYSLOG_PORT=514
 AUDIT_SYSLOG_FACILITY=local0
 AUDIT_FILE_PATH=/var/log/postinstall/audit-export.jsonl
+
+# Куда писать recovery kit (в Development переопределяется на ./recovery-kit)
+# ACCESS_RECOVERY_KIT_DIR=/var/lib/postinstall/recovery

@@ -26,7 +26,7 @@ from .models import (
     RoleChangeNotice,
     log_auth_event,
 )
-from .permissions import active_roles, can_manage_role, get_active_supervisors
+from .permissions import active_roles, can_manage_role, get_active_supervisors, is_supervisor
 from .roles import DUAL_APPROVAL_ROLES, Role, ScopeType
 
 User = get_user_model()
@@ -106,6 +106,11 @@ def approve_invitation(
     invitation: Invitation, *, by_user,
     ip: str | None = None,
 ) -> None:
+    if not (by_user.is_superuser or is_supervisor(by_user)):
+        raise PermissionError("Подтверждать инвайт может только SUPERVISOR")
+    if by_user.pk == invitation.invited_by_id:
+        raise PermissionError("Подтвердить инвайт должен другой SUPERVISOR")
+
     """Подтвердить инвайт. Применяется для DUAL-инвайтов."""
     if invitation.status != Invitation.Status.PENDING_APPROVAL:
         raise ValueError(
