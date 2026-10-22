@@ -118,6 +118,8 @@ def setup_view(request):
                         )
             except InvariantViolation as exc:
                 messages.error(request, str(exc))
+            except ValueError as exc:
+                messages.error(request, str(exc))
             except Exception as exc:
                 logger.exception("setup: failed")
                 messages.error(request, f"Ошибка: {exc}")
