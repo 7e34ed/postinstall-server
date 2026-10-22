@@ -106,8 +106,12 @@ def approve_invitation(
     invitation: Invitation, *, by_user,
     ip: str | None = None,
 ) -> None:
+    # A125: только SUPERVISOR может подтверждать инвайты
     if not (by_user.is_superuser or is_supervisor(by_user)):
         raise PermissionError("Подтверждать инвайт может только SUPERVISOR")
+    
+    if invitation.status != Invitation.Status.PENDING_APPROVAL:
+        raise ValueError(...)
     if by_user.pk == invitation.invited_by_id:
         raise PermissionError("Подтвердить инвайт должен другой SUPERVISOR")
 
@@ -379,6 +383,9 @@ def initiate_direct_assignment(
 def approve_direct_assignment(
     da: DirectRoleAssignment, *, by_user,
 ) -> None:
+    # A126: только SUPERVISOR может подтверждать прямые назначения
+    if not (by_user.is_superuser or is_supervisor(by_user)):
+        raise PermissionError("Подтверждать назначение может только SUPERVISOR")
     if da.status != DirectRoleAssignment.Status.PENDING:
         raise ValueError(f"Назначение в статусе {da.status}")
     if by_user.pk == da.initiated_by_id:
