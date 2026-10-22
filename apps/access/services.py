@@ -174,6 +174,7 @@ def create_invitation_and_send(
     *, email: str, role: str,
     scope_type: str, scope_id: int,
     invited_by, valid_until=None, reason: str = "",
+    request = None,
 ) -> tuple[Invitation, str, bool]:
     """Создать инвайт и отправить письмо (если не требует consensus).
 
@@ -187,7 +188,7 @@ def create_invitation_and_send(
     )
 
     if invitation.status == Invitation.Status.PENDING:
-        sent = _send_and_record(invitation, token)
+        sent = _send_and_record(invitation, token, request=request)
     else:
         sent = False
         logger.info(
@@ -198,7 +199,7 @@ def create_invitation_and_send(
     return invitation, token, sent
 
 
-def _send_and_record(invitation: Invitation, token: str) -> bool:
+def _send_and_record(invitation: Invitation, token: str, request = None) -> bool:
     ok = send_invitation_email(invitation, token)
     invitation.email_attempts = (invitation.email_attempts or 0) + 1
     if ok:
@@ -212,7 +213,7 @@ def _send_and_record(invitation: Invitation, token: str) -> bool:
     return ok
 
 
-def resend_invitation(invitation: Invitation, *, by_user) -> bool:
+def resend_invitation(invitation: Invitation, *, by_user, request=None) -> bool:
     """Переотправить письмо. Только для PENDING-инвайтов."""
     if invitation.status != Invitation.Status.PENDING:
         raise ValueError(
@@ -229,7 +230,7 @@ def resend_invitation(invitation: Invitation, *, by_user) -> bool:
         hours=_invite_ttl_hours(invitation.role),
     )
     invitation.save(update_fields=["token_hash", "expires_at"])
-    return _send_and_record(invitation, token)
+    return _send_and_record(invitation, token, request=request)
 
 
 def accept_invitation(

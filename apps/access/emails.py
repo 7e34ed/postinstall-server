@@ -11,11 +11,34 @@ from loguru import logger
 from .models import Invitation
 
 
-def _build_accept_url(invitation: Invitation, token: str) -> str:
+def _build_accept_url(invitation: Invitation, token: str, *, request=None) -> str:
+    """Полный URL accept-ссылки.
+
+    Приоритет:
+      1. settings.ACCESS_PUBLIC_BASE_URL (явная настройка, прод)
+      2. request.scheme + request.get_host() (fallback для dev/тестов)
+      3. относительный путь (последний resort — сломанный сценарий)
+    """
     path = reverse("access:invite-accept", args=[token])
-    base = getattr(settings, "ACCESS_PUBLIC_BASE_URL", "").rstrip("/")
+
+    base = (getattr(settings, "ACCESS_PUBLIC_BASE_URL", "") or "").rstrip("/")
     if base:
         return f"{base}{path}"
+
+    if request is not None:
+        try:
+            scheme = request.scheme or "http"
+            host = request.get_host()
+            if host:
+                return f"{scheme}://{host}{path}"
+        except Exception:
+            pass
+
+    logger.warning(
+        "access: cannot build absolute accept URL — "
+        "ACCESS_PUBLIC_BASE_URL not set, no request. "
+        "Email will contain a relative link (broken for users)."
+    )
     return path
 
 

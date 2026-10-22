@@ -306,6 +306,7 @@ def invite_create(request: HttpRequest) -> HttpResponse:
                     email=email, role=role,
                     scope_type=scope_type, scope_id=scope_id,
                     invited_by=user, reason=reason,
+                    request=request,
                 )
                 if inv.status == Invitation.Status.PENDING_APPROVAL:
                     messages.info(
@@ -372,7 +373,7 @@ def invite_approve(request: HttpRequest, pk) -> HttpResponse:
             inv.token_hash = token_hash
             inv.save(update_fields=["token_hash"])
             from .services import _send_and_record
-            sent = _send_and_record(inv, token)
+            sent = _send_and_record(inv, token, request=request)
             if sent:
                 messages.success(
                     request,
@@ -431,7 +432,7 @@ def invite_resend(request: HttpRequest, pk) -> HttpResponse:
         return redirect(reverse("access:invites-list"))
 
     try:
-        sent = resend_invitation(inv, by_user=request.user)
+        sent = resend_invitation(inv, by_user=request.user, request=request)
         if sent:
             messages.success(request, f"Письмо переотправлено на {inv.email}.")
         else:
