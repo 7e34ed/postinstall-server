@@ -351,49 +351,31 @@ def invite_create(request: HttpRequest) -> HttpResponse:
 @require_roles("supervisor")
 @rate_limit(limit=30, window=3600, key_prefix="secrets_backend_change")
 @require_http_methods(["POST"])
-def invite_approve(request: HttpRequest, pk) -> HttpResponse:
+def invite_approve(request, pk):
+    from .services import approve_invitation
     from .models import Invitation as _Inv
-    from .services import _new_token, approve_invitation, resend_invitation
-
+    
+    inv = _Inv.objects.get(pk=pk)
     try:
-        inv = _Inv.objects.get(pk=pk)
-    except _Inv.DoesNotExist:
-        messages.error(request, "Инвайт не найден.")
-        return redirect(reverse("access:invites-list"))
-
-    try:
-        approve_invitation(inv, by_user=request.user,
-                           ip=get_client_ip(request))
+        approve_invitation(
+            inv, by_user=request.user,
+            ip=get_client_ip(request),
+            request=request,
+        )
         inv.refresh_from_db()
-
         if inv.status == Invitation.Status.PENDING:
-            # consensus достигнут — отправляем письмо
-            # нужен новый токен, т.к. исходный уже не сохранён
-            token, token_hash = _new_token()
-            inv.token_hash = token_hash
-            inv.save(update_fields=["token_hash"])
-            from .services import _send_and_record
-            sent = _send_and_record(inv, token, request=request)
-            if sent:
-                messages.success(
-                    request,
-                    f"Инвайт подтверждён, письмо отправлено на {inv.email}."
-                )
-            else:
-                messages.warning(
-                    request,
-                    "Инвайт подтверждён, но письмо не отправлено. "
-                    "Переотправьте вручную."
-                )
+            messages.success(
+                request,
+                f"Инвайт подтверждён, письмо отправлено на {inv.email}.",
+            )
         else:
             messages.info(
                 request,
                 f"Подтверждений: {inv.approvals_count}/"
-                f"{inv.required_approvals()}."
+                f"{inv.required_approvals()}.",
             )
     except (PermissionError, ValueError) as exc:
         messages.error(request, str(exc))
-
     return redirect(reverse("access:invites-list"))
 
 

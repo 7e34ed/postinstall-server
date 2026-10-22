@@ -105,25 +105,23 @@ def create_invitation(
 def approve_invitation(
     invitation: Invitation, *, by_user,
     ip: str | None = None,
+    request=None,
 ) -> None:
+    """Подтвердить инвайт. Применяется для DUAL-инвайтов.
+
+    При достижении required approvals — генерирует новый токен
+    (старый plaintext потерян при создании) и отправляет письмо.
+    """
     # A125: только SUPERVISOR может подтверждать инвайты
     if not (by_user.is_superuser or is_supervisor(by_user)):
         raise PermissionError("Подтверждать инвайт может только SUPERVISOR")
-    
-    if invitation.status != Invitation.Status.PENDING_APPROVAL:
-        raise ValueError(...)
-    if by_user.pk == invitation.invited_by_id:
-        raise PermissionError("Подтвердить инвайт должен другой SUPERVISOR")
 
-    """Подтвердить инвайт. Применяется для DUAL-инвайтов."""
     if invitation.status != Invitation.Status.PENDING_APPROVAL:
         raise ValueError(
             f"Инвайт не в статусе PENDING_APPROVAL: {invitation.status}"
         )
     if by_user.pk == invitation.invited_by_id:
-        raise PermissionError(
-            "Подтвердить инвайт должен другой SUPERVISOR"
-        )
+        raise PermissionError("Подтвердить инвайт должен другой SUPERVISOR")
 
     if invitation.approval1_by_id is None:
         invitation.approval1_by = by_user
@@ -137,19 +135,34 @@ def approve_invitation(
         raise ValueError("Инвайт уже подтверждён")
 
     required = invitation.required_approvals()
-    approved = sum(1 for x in (invitation.approval1_by_id,
-                                invitation.approval2_by_id) if x)
-
-    if approved >= required:
-        invitation.status = Invitation.Status.PENDING
+    approved = sum(
+        1 for x in (invitation.approval1_by_id, invitation.approval2_by_id) if x
+    )
 
     invitation.save()
+
     log_auth_event(
         AuthAuditLog.Event.INVITE_APPROVED,
         user=by_user, ip=ip,
-        detail={"invitation_id": str(invitation.id),
-                "approved": approved, "required": required},
+        detail={
+            "invitation_id": str(invitation.id),
+            "approved": approved,
+            "required": required,
+        },
     )
+
+    if approved >= required:
+        # A224: consensus достигнут — новый токен + письмо
+        invitation.status = Invitation.Status.PENDING
+        token, token_hash = _new_token()
+        invitation.token_hash = token_hash
+        invitation.expires_at = timezone.now() + timezone.timedelta(
+            hours=_invite_ttl_hours(invitation.role),
+        )
+        invitation.save(update_fields=[
+            "status", "token_hash", "expires_at",
+        ])
+        _send_and_record(invitation, token, request=request)
 
 
 def revoke_invitation(
