@@ -275,8 +275,15 @@ def accept_invitation(
     if User.objects.filter(username=username).exists():
         raise ValueError(f"Логин {username!r} занят")
 
-    if not password or len(password) < 8:
-        raise ValueError("Пароль слишком короткий (минимум 8 символов)")
+    if not password:
+        raise ValueError("Пароль обязателен")
+
+    from django.contrib.auth.password_validation import validate_password
+    from django.core.exceptions import ValidationError
+    try:
+        validate_password(password)
+    except ValidationError as exc:
+        raise ValueError(f"Пароль не соответствует политике: {'; '.join(exc.messages)}")
 
     with transaction.atomic():
         user = User.objects.create_user(

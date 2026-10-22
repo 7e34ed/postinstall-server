@@ -305,8 +305,14 @@ def invite_accept(request, token: str):
             errors.append("Логин обязателен")
         if password != password2:
             errors.append("Пароли не совпадают")
-        if len(password) < 8:
-            errors.append("Пароль минимум 8 символов")
+        if password:
+            from django.contrib.auth.password_validation import validate_password
+            from django.core.exceptions import ValidationError
+            try:
+                validate_password(password)
+            except ValidationError as exc:
+                errors.extend(exc.messages)
+
         if len(username) < 3:
             errors.append("Логин минимум 3 символа")
         if attach_cert and not cert_ok:
