@@ -182,19 +182,38 @@ def test_revoke_supervisor_blocked_with_one(su):
     _assign(su, Role.SUPERVISOR)
 
     ra = RoleAssignment.objects.get(user=su, role="supervisor")
-    with pytest.raises(Exception, match="двух"):
+    with pytest.raises(PermissionError, match="прав"):
         revoke_role(ra, by_user=su)
 
 
 @pytest.mark.django_db
-def test_revoke_supervisor_ok_with_two(su):
+def test_revoke_supervisor_blocked_with_two(su):
+    """SUPERVISOR не отзывает SUPERVISOR'а — даже при двух.
+    Только через break-glass или superuser."""
     from apps.access.services import revoke_role
     su2 = User.objects.create_user("su2")
     _assign(su, Role.SUPERVISOR)
     _assign(su2, Role.SUPERVISOR)
 
     ra = RoleAssignment.objects.get(user=su, role="supervisor")
-    revoke_role(ra, by_user=su2)
+    with pytest.raises(PermissionError, match="прав"):
+        revoke_role(ra, by_user=su2)
+    
+    # роль на месте
+    assert RoleAssignment.objects.filter(
+        user=su, role="supervisor", revoked_at__isnull=True,
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_revoke_supervisor_by_superuser_ok(su):
+    """Superuser может отозвать SUPERVISOR'а (физический доступ)."""
+    from apps.access.services import revoke_role
+    _assign(su, Role.SUPERVISOR)
+    
+    admin = User.objects.create_user("root", is_superuser=True)
+    ra = RoleAssignment.objects.get(user=su, role="supervisor")
+    revoke_role(ra, by_user=admin)
     assert RoleAssignment.objects.filter(
         user=su, role="supervisor", revoked_at__isnull=True,
     ).count() == 0

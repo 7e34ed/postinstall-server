@@ -33,9 +33,18 @@ def assert_min_supervisors(*, excluding_ids=None, message: str = ""):
         )
 
 
-def assert_can_revoke(assignment: RoleAssignment):
-    """Проверка, что отзыв не нарушит инварианты."""
+def assert_can_revoke(assignment: RoleAssignment, *, by_user=None):
+    """Проверка, что отзыв не нарушит инварианты.
+
+    Superuser (аварийный путь) может отозвать даже последнего SUPERVISOR'а —
+    иначе из «сломавшийся единственный SUPERVISOR» нет выхода.
+    """
+
     if assignment.role == Role.SUPERVISOR.value:
+        # superuser — обход инварианта (физический доступ к серверу)
+        if by_user is not None and getattr(by_user, "is_superuser", False):
+            return
+        
         assert_min_supervisors(
             excluding_ids=[assignment.pk],
             message=(

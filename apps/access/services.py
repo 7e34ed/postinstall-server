@@ -471,7 +471,7 @@ def revoke_role(
                            scope_id=assignment.scope_id):
         raise PermissionError("Нет прав на отзыв этой роли")
 
-    assert_can_revoke(assignment)
+    assert_can_revoke(assignment, by_user=by_user)
 
     assignment.revoked_at = timezone.now()
     assignment.revoked_by = by_user
