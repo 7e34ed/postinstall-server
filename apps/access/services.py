@@ -293,7 +293,6 @@ def accept_invitation(
         raise ValueError("Пароль обязателен")
 
     from django.contrib.auth.password_validation import validate_password
-    from django.core.exceptions import ValidationError
     try:
         validate_password(password)
     except ValidationError as exc:
@@ -569,9 +568,26 @@ def enable_break_glass(
     По умолчанию отказывается, если есть «живые» SUPERVISOR'ы.
     force=True — обход с громким аудитом (для аварийного случая).
     """
-    from .models import BreakGlassAccount
+    
+    # A240: break-glass — только SUPERVISOR (или superuser)
+    if by_user is None or not (
+        getattr(by_user, "is_superuser", False)
+        or is_supervisor(by_user)
+    ):
+        log_auth_event(
+            AuthAuditLog.Event.BREAK_GLASS_ENABLED,
+            user=by_user,
+            success=False,
+            error="permission denied",
+            detail={"reason": reason},
+        )
+        raise PermissionError(
+            "Break-glass может включить только SUPERVISOR"
+        )
 
+    from .models import BreakGlassAccount
     account = BreakGlassAccount.get()
+
     if account is None:
         raise ValueError("Break-glass account не создан")
 
@@ -611,6 +627,14 @@ def enable_break_glass(
 
 
 def disable_break_glass(*, by_user=None) -> None:
+    if by_user is not None and not (
+        getattr(by_user, "is_superuser", False)
+        or is_supervisor(by_user)
+    ):
+        raise PermissionError(
+            "Break-glass может выключить только SUPERVISOR (или system)"
+        )
+
     from .models import BreakGlassAccount
     account = BreakGlassAccount.get()
     if account is None:
