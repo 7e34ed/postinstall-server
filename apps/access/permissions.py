@@ -276,6 +276,37 @@ def can_manage_role(
     return False
 
 
+def is_elevated_deputy(user) -> bool:
+    """Активен ли ELEVATED-режим для этого заместителя сейчас."""
+    if not user or not user.is_authenticated:
+        return False
+    return any(
+        dep.is_currently_elevated()
+        for dep in DeputyAssignment.objects.filter(
+            deputy=user,
+            kind=DeputyAssignment.Kind.ELEVATED,
+            is_active=True,
+        ).select_related("principal")
+    )
+
+
+def can_approve_consensus(user) -> bool:
+    """Может ли пользователь подтверждать consensus-инвайты.
+    
+    Да, если:
+      * superuser;
+      * SUPERVISOR (активная роль);
+      * ELEVATED-заместитель (principal неактивен, режим активен).
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if is_supervisor(user):
+        return True
+    return is_elevated_deputy(user)
+
+
 def roles_user_can_manage(manager, *, scope_type: str, scope_id: int) -> set[str]:
     """Список ролей, которые manager может выдавать в этом scope."""
     if manager.is_superuser:

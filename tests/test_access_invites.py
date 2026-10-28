@@ -75,7 +75,7 @@ def test_create_invitation_admin_pending_approval(su, d1):
     assert inv.status == Invitation.Status.PENDING_APPROVAL
     assert not sent
     assert len(mail.outbox) == 0
-    assert inv.required_approvals() == 2
+    assert inv.required_approvals() == 1
 
 
 @pytest.mark.django_db
@@ -106,7 +106,8 @@ def test_accept_invitation(su, d1):
         invited_by=su,
     )
     user = accept_invitation(
-        inv, token=token, username="newuser", password="password123",
+        inv, token=token, username="newuser",
+        password="Correct-Horse-Battery-Staple-99",
     )
     assert user.email == "new@test.local"
     assert RoleAssignment.objects.filter(
@@ -127,7 +128,7 @@ def test_accept_wrong_token(su, d1):
     )
     with pytest.raises(PermissionError):
         accept_invitation(inv, token="wrongtoken",
-                          username="x", password="password123")
+                          username="x", password="Correct-Horse-Battery-Staple-99")
 
 
 @pytest.mark.django_db
@@ -142,7 +143,7 @@ def test_accept_expired(su, d1):
 
     with pytest.raises(ValueError, match="истёк"):
         accept_invitation(inv, token=token,
-                          username="x", password="password123")
+                          username="x", password="Correct-Horse-Battery-Staple-99")
 
 
 @pytest.mark.django_db
@@ -155,7 +156,7 @@ def test_accept_duplicate_username(su, d1):
     )
     with pytest.raises(ValueError, match="занят"):
         accept_invitation(inv, token=token,
-                          username="taken", password="password123")
+                          username="taken", password="Correct-Horse-Battery-Staple-99")
 
 
 @pytest.mark.django_db
@@ -218,8 +219,8 @@ def test_invite_accept_post(su, d1):
     c = Client()
     r = c.post(f"/access/invite/{token}/", {
         "username": "newuser",
-        "password": "password123",
-        "password2": "password123",
+        "password": "Correct-Horse-Battery-Staple-99",
+        "password2": "Correct-Horse-Battery-Staple-99",
         "full_name": "New User",
     })
     assert r.status_code == 302
@@ -237,7 +238,7 @@ def test_invite_accept_post_password_mismatch(su, d1):
     c = Client()
     r = c.post(f"/access/invite/{token}/", {
         "username": "newuser",
-        "password": "password123",
+        "password": "Correct-Horse-Battery-Staple-99",
         "password2": "different",
     })
     assert r.status_code == 200

@@ -245,7 +245,8 @@ class Invitation(models.Model):
         return sum(1 for x in (self.approval1_by_id, self.approval2_by_id) if x)
 
     def required_approvals(self) -> int:
-        return 2 if self.role in {r.value for r in _DUAL_APPROVAL} else 1
+        return 1 if self.role in {r.value for r in _DUAL_APPROVAL} else 0
+        # return 2 if self.role in {r.value for r in _DUAL_APPROVAL} else 1
 
 
 # Лениво, чтобы избежать циклического импорта

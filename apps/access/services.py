@@ -26,7 +26,13 @@ from .models import (
     RoleChangeNotice,
     log_auth_event,
 )
-from .permissions import active_roles, can_manage_role, get_active_supervisors, is_supervisor
+from .permissions import (
+    active_roles,
+    can_approve_consensus,
+    can_manage_role,
+    get_active_supervisors,
+    is_supervisor,
+)
 from .roles import DUAL_APPROVAL_ROLES, Role, ScopeType
 
 User = get_user_model()
@@ -112,6 +118,13 @@ def approve_invitation(
     При достижении required approvals — генерирует новый токен
     (старый plaintext потерян при создании) и отправляет письмо.
     """
+
+    if not can_approve_consensus(by_user):
+        raise PermissionError(
+            "Подтверждать инвайт может только SUPERVISOR "
+            "или ELEVATED-заместитель"
+        )
+    
     # A125: только SUPERVISOR может подтверждать инвайты
     if not (by_user.is_superuser or is_supervisor(by_user)):
         raise PermissionError("Подтверждать инвайт может только SUPERVISOR")
@@ -403,6 +416,12 @@ def initiate_direct_assignment(
 def approve_direct_assignment(
     da: DirectRoleAssignment, *, by_user,
 ) -> None:
+    if not can_approve_consensus(by_user):
+        raise PermissionError(
+            "Подтверждать инвайт может только SUPERVISOR "
+            "или ELEVATED-заместитель"
+        )
+    
     # A126: только SUPERVISOR может подтверждать прямые назначения
     if not (by_user.is_superuser or is_supervisor(by_user)):
         raise PermissionError("Подтверждать назначение может только SUPERVISOR")
