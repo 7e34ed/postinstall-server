@@ -4,7 +4,9 @@ from django.test import Client
 
 from apps.access.models import RoleAssignment
 from apps.access.permissions import (
-    user_can_deploy, user_can_edit_object, user_can_view_object,
+    user_can_deploy,
+    user_can_edit_object,
+    user_can_view_object,
 )
 from apps.access.roles import Role, ScopeType
 from apps.inventory.models import Domain, Host, HostSet
@@ -181,24 +183,31 @@ def test_credentials_hidden_for_viewer(h1):
                "Учётных данных нет" in r.content.decode()
 
 
-@pytest.mark.django_db
-def test_roles_page_denied_for_admin(d1):
-    """ADMIN не видит полный список ролей (только SUPERVISOR)."""
+def test_roles_page_denied_for_admin(d1, setup_complete, login_with_aal_fixture):
+    from allauth.mfa.models import Authenticator
+    
     u = User.objects.create_user("a")
     _assign(u, Role.ADMIN, ScopeType.DOMAIN, d1.pk)
+    # TOTP-authenticator, чтобы user_max_aal вернул AAL2
+    Authenticator.objects.create(user=u, type=Authenticator.Type.TOTP, data={})
 
     c = Client()
-    c.force_login(u)
+    login_with_aal_fixture(c, u, aal="aal2")
     r = c.get("/access/roles/")
     assert r.status_code == 403
 
 
-@pytest.mark.django_db
-def test_roles_page_ok_for_supervisor(db):
+def test_roles_page_ok_for_supervisor(db, setup_complete, login_with_aal_fixture):
+    from allauth.mfa.models import Authenticator
+    
     u = User.objects.create_user("sup")
     _assign(u, Role.SUPERVISOR)
+    # TOTP, чтобы user_max_aal вернул AAL2
+    Authenticator.objects.create(
+        user=u, type=Authenticator.Type.TOTP, data={"secret": "TEST"},
+    )
 
     c = Client()
-    c.force_login(u)
+    login_with_aal_fixture(c, u, aal="aal2")
     r = c.get("/access/roles/")
     assert r.status_code == 200

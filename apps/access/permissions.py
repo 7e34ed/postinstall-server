@@ -1,25 +1,10 @@
 from __future__ import annotations
 
-from typing import Iterable
-
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from .models import DeputyAssignment, RoleAssignment
 from .roles import Role, ScopeType
-
-CAN_MANAGE: dict[str, set[str]] = {
-    Role.SUPERVISOR.value: {
-        Role.ADMIN.value,
-        Role.AUDITOR.value,
-        Role.OPERATOR.value,
-        Role.VIEWER.value,
-    },
-    Role.ADMIN.value: {
-        Role.OPERATOR.value,
-        Role.VIEWER.value,
-    },
-}
 
 # --- Базовые ---
 
@@ -184,36 +169,6 @@ def get_approvers_for(invitation) -> list:
             continue
         result.append(u)
     return result
-
-
-def _ra_covers_scope(ra: RoleAssignment, scope_type: str, scope_id: int) -> bool:
-    if ra.scope_type == ScopeType.GLOBAL.value:
-        return True
-    if ra.scope_type == scope_type and ra.scope_id == scope_id:
-        return True
-    if ra.scope_type == ScopeType.DOMAIN.value:
-        if scope_type == ScopeType.HOST_SET.value:
-            from apps.core.utils import resolve_scope_object
-
-            hs = resolve_scope_object("host_set", scope_id)
-            return hs is not None and hs.domain_id == ra.scope_id
-        if scope_type == ScopeType.HOST.value:
-            from apps.core.utils import resolve_scope_object
-
-            h = resolve_scope_object("host", scope_id)
-            return h is not None and h.domain_id == ra.scope_id
-    if ra.scope_type == ScopeType.HOST_SET.value:
-        if scope_type == ScopeType.HOST.value:
-            from apps.core.utils import resolve_scope_object
-            
-            h = resolve_scope_object("host", scope_id)
-            return h is not None and h.host_set_id == ra.scope_id
-    return False
-
-
-def _scope_covers(manager, scope_type: str, scope_id: int) -> bool:
-    return any(_ra_covers_scope(ra, scope_type, scope_id)
-               for ra in active_roles(manager))
 
 
 # ============================================================

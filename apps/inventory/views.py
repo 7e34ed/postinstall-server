@@ -27,8 +27,10 @@ class HostListView(SingleTableMixin, FilterView):
             return qs.none()
         if user.is_superuser:
             return qs
-        # guardian: view_host на уровне объекта
-        return get_objects_for_user(user, "inventory.view_host", qs)
+
+        from apps.access.permissions import user_can_view_object
+        pks = [h.pk for h in qs if user_can_view_object(user, h)]
+        return qs.filter(pk__in=pks)
 
 
 def host_detail_view(request, pk):
