@@ -7,7 +7,7 @@ from .models import Deployment
 
 class DeploymentTable(tables.Table):
     id = tables.Column(verbose_name="ID", orderable=False)
-    host = tables.Column(accessor="host.hostname", verbose_name="Хост",
+    host = tables.Column(accessor="host__hostname", verbose_name="Хост",
                          linkify=False)
     status = tables.TemplateColumn(
         template_name="deploy/_status_badge.html",

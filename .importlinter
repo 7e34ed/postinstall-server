@@ -1,0 +1,12 @@
+[importlinter]
+root_packages =
+    apps
+
+[importlinter:contract:layers]
+name = Layered architecture
+type = layers
+layers =
+    apps.access
+    apps.secrets
+    apps.inventory
+    apps.core

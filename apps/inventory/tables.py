@@ -14,8 +14,8 @@ class HostTable(tables.Table):
         attrs={"td": {"class": "w-8"}},
     )
     hostname = tables.Column(linkify=False, verbose_name="Hostname")
-    domain = tables.Column(accessor="domain.name", verbose_name="Домен")
-    host_set = tables.Column(accessor="host_set.name", verbose_name="Набор")
+    domain = tables.Column(accessor="domain__name", verbose_name="Домен")
+    host_set = tables.Column(accessor="host_set__name", verbose_name="Набор")
     drift = tables.TemplateColumn(
         template_name="inventory/_drift_badge.html",
         verbose_name="Дрифт", orderable=False,
