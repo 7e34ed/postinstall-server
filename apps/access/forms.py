@@ -5,6 +5,7 @@ import re
 
 from django import forms
 from django.core.exceptions import ValidationError
+from loguru import logger
 
 from .models import UserCertificate
 
@@ -17,6 +18,10 @@ class CertificateEnrollForm(forms.Form):
     Реальное значение fingerprint проверяется middleware при
     следующем запросе с mTLS. Здесь — только декларация.
     """
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
 
     label = forms.CharField(
         max_length=128,
@@ -61,15 +66,15 @@ class CertificateEnrollForm(forms.Form):
             raise ValidationError(
                 "Fingerprint должен быть SHA-256 hex (64 символа)."
             )
-        return v
-
-    def clean(self):
-        cleaned = super().clean()
-        fp = cleaned.get("fingerprint")
-        if fp and UserCertificate.objects.filter(
-            fingerprint_sha256=fp, is_active=True,
+        if UserCertificate.objects.filter(
+            fingerprint_sha256=v, is_active=True,
         ).exists():
-            raise ValidationError(
-                "Этот сертификат уже привязан к другому пользователю."
+            logger.warning(
+                f"cert enroll: duplicate fingerprint "
+                f"(user={self.user.username if self.user else 'anon'})"
             )
-        return cleaned
+            raise ValidationError(
+                "Не удалось привязать сертификат. "
+                "Проверьте fingerprint или обратитесь к администратору."
+            )
+        return v

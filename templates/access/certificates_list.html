@@ -81,6 +81,16 @@
 
         <form method="post" class="space-y-3 mt-3">
           {% csrf_token %}
+
+          {# non-field errors (__all__) #}
+          {% if form.non_field_errors %}
+            <div role="alert" class="alert alert-error text-sm">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          
           {% for field in form %}
             <div>
               <label class="label"><span class="label-text">{{ field.label }}</span></label>
