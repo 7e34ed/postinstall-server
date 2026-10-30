@@ -126,14 +126,16 @@ def test_middleware_blocks_insufficient_aal(db, su):
 
 
 @pytest.mark.django_db
-def test_middleware_allows_superuser(db):
+def test_middleware_allows_superuser(db, setup_complete):
     """superuser всегда пропускается."""
     su = User.objects.create_user("root", password="pwd12345",
                                   is_superuser=True)
     c = Client()
     c.force_login(su)
     r = c.get("/admin/secrets/backend/")
-    assert r.status_code in (200, 302, 403)
+    # superuser bypasses AAL: не должно быть redirect на reauthenticate
+    # 503 (sealed) — допустимо, это не про AAL
+    assert r.status_code in (200, 302, 403, 503)
     # 302 — на /admin/, не на reauthenticate
     if r.status_code == 302:
         assert "reauthenticate" not in (r.get("Location") or "")

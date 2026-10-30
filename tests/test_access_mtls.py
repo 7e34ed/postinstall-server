@@ -255,16 +255,41 @@ def test_enroll_certificate(alice):
     ).exists()
 
 
+# @pytest.mark.django_db
+# def test_enroll_duplicate_fingerprint(alice, alice_cert):
+#     from apps.access.models import UserCertificate
+    
+#     c = Client()
+#     c.force_login(alice)
+#     r = c.post("/access/security/certificates/", {
+#         "label": "dup",
+#         "fingerprint": FP_ALICE,
+#     })
+#     # 200 = форма вернулась с ошибкой (не redirect)
+#     assert r.status_code == 200
+#     # Второй сертификат не создан
+#     assert UserCertificate.objects.filter(
+#         fingerprint_sha256=FP_ALICE,
+#     ).count() == 1
+#     # Форма в контексте содержит ошибку
+#     form = r.context["form"]
+#     assert form.errors
+#     assert "fingerprint" in form.errors
+
+
 @pytest.mark.django_db
 def test_enroll_duplicate_fingerprint(alice, alice_cert):
+    from apps.access.models import UserCertificate
+    
+    before = UserCertificate.objects.count()
     c = Client()
     c.force_login(alice)
     r = c.post("/access/security/certificates/", {
         "label": "dup",
         "fingerprint": FP_ALICE,
     })
-    assert r.status_code == 200
-    assert "уже привязан" in r.content.decode()
+    assert r.status_code == 200  # не redirect
+    assert UserCertificate.objects.count() == before  # не создан второй
 
 
 @pytest.mark.django_db

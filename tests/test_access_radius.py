@@ -7,12 +7,12 @@ from django.test import Client, override_settings
 from apps.access.auth_backends import (
     LocalOnlyBackend,
     RadiusBackend,
-    _get_auth_source,
 )
 from apps.access.models import (
     AuthAuditLog,
     UserAuthSettings,
 )
+from apps.access.radius_utils import get_auth_source
 
 User = get_user_model()
 
@@ -163,58 +163,64 @@ def test_local_only_backend_blocks_radius_user(radius_user):
     assert user is None
 
 
-# --- get_auth_source ---
+# --- radius_utils.get_auth_source ---
 
 @pytest.mark.django_db
 def test_get_auth_source_default(local_user):
-    assert _get_auth_source(local_user) == "local"
+    assert get_auth_source(local_user) == "local"
 
 
 @pytest.mark.django_db
 def test_get_auth_source_radius(radius_user):
-    assert _get_auth_source(radius_user) == "radius"
+    assert get_auth_source(radius_user) == "radius"
 
 
 # --- UI ---
 
 @pytest.mark.django_db
-def test_radius_page_requires_supervisor(db):
+def test_radius_page_requires_supervisor(db, setup_complete):    # ← + setup_complete
     u = User.objects.create_user("plain")
     c = Client()
     c.force_login(u)
     r = c.get("/access/radius/")
     assert r.status_code == 403
 
+@pytest.mark.django_db
+def test_radius_page_supervisor_ok(db, setup_complete):
+    from constance.test import override_config
+    
+    with override_config(MFA_REQUIRED_FOR_SUPERVISOR=False):
+        from apps.access.models import RoleAssignment
+        u = User.objects.create_user("sup")
+        RoleAssignment.objects.create(
+            user=u, role="supervisor", scope_type="global", scope_id=0,
+        )
+        c = Client()
+        c.force_login(u)
+        r = c.get("/access/radius/")
+        assert r.status_code == 200
+
 
 @pytest.mark.django_db
-def test_radius_page_supervisor_ok(db):
+def test_set_auth_source(db, setup_complete):
+    from constance.test import override_config
+
     from apps.access.models import RoleAssignment
-    u = User.objects.create_user("sup")
-    RoleAssignment.objects.create(
-        user=u, role="supervisor", scope_type="global", scope_id=0,
-    )
-    c = Client()
-    c.force_login(u)
-    r = c.get("/access/radius/")
-    assert r.status_code == 200
 
+    with override_config(MFA_REQUIRED_FOR_SUPERVISOR=False):
+        sup = User.objects.create_user("sup")
+        RoleAssignment.objects.create(
+            user=sup, role="supervisor", scope_type="global", scope_id=0,
+        )
+        target = User.objects.create_user("target")
 
-@pytest.mark.django_db
-def test_set_auth_source(db):
-    from apps.access.models import RoleAssignment
-    sup = User.objects.create_user("sup")
-    RoleAssignment.objects.create(
-        user=sup, role="supervisor", scope_type="global", scope_id=0,
-    )
-    target = User.objects.create_user("target")
-
-    c = Client()
-    c.force_login(sup)
-    r = c.post(f"/access/users/{target.pk}/auth-source/",
-               {"source": "radius"})
-    assert r.status_code == 302
-    s = UserAuthSettings.objects.get(user=target)
-    assert s.auth_source == "radius"
+        c = Client()
+        c.force_login(sup)
+        r = c.post(f"/access/users/{target.pk}/auth-source/",
+                {"source": "radius"})
+        assert r.status_code == 302
+        s = UserAuthSettings.objects.get(user=target)
+        assert s.auth_source == "radius"
 
 
 # --- Полный флоу логина ---
