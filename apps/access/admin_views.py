@@ -352,9 +352,9 @@ def invite_create(request: HttpRequest) -> HttpResponse:
 @rate_limit(limit=30, window=3600, key_prefix="secrets_backend_change")
 @require_http_methods(["POST"])
 def invite_approve(request, pk):
-    from .services import approve_invitation
     from .models import Invitation as _Inv
-    
+    from .services import approve_invitation
+
     inv = _Inv.objects.get(pk=pk)
     try:
         approve_invitation(
@@ -495,6 +495,7 @@ def security_center(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@rate_limit(limit=10, window=3600, key_prefix="cert_enroll")
 @require_http_methods(["GET", "POST"])
 def certificates_list(request: HttpRequest) -> HttpResponse:
     from .forms import CertificateEnrollForm
@@ -509,7 +510,7 @@ def certificates_list(request: HttpRequest) -> HttpResponse:
             messages.error(request, "Самостоятельная привязка запрещена.")
             return redirect(reverse("access:certificates-list"))
 
-        form = CertificateEnrollForm(request.POST)
+        form = CertificateEnrollForm(request.POST, user=request.user)
         if form.is_valid():
             cert = UserCertificate.objects.create(
                 user=user,
