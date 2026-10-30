@@ -67,3 +67,8 @@ ignore = ["E501", "DJ001"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 DJANGO_CONFIGURATION = "Testing"
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.15",
+]
