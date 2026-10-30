@@ -1,6 +1,7 @@
 """Декораторы для rate-limit и прочего."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
 
 from django.http import HttpResponse
@@ -9,6 +10,12 @@ from django.template.loader import render_to_string
 from apps.core.utils import get_client_ip
 
 from .ratelimit import hit
+
+_rate_limit_auditor: Callable | None = None
+
+def register_rate_limit_auditor(fn):
+    global _rate_limit_auditor
+    _rate_limit_auditor = fn
 
 
 def rate_limit(*, limit: int, window: int, key_prefix: str = "action"):
@@ -25,16 +32,12 @@ def rate_limit(*, limit: int, window: int, key_prefix: str = "action"):
             key = f"{key_prefix}:{uid}:{ip}"
             result = hit(key, limit=limit, window=window)
             if not result.allowed:
-                from apps.access.models import AuthAuditLog, log_auth_event
-                log_auth_event(
-                    AuthAuditLog.Event.RATE_LIMITED,
-                    user=user if user and user.is_authenticated else None,
-                    ip=ip, success=False,
-                    detail={
-                        "action": key_prefix,
-                        "limit": limit, "window": window,
-                    },
-                )
+                try:
+                    _rate_limit_auditor(request, key_prefix, result, window)
+                except Exception:
+                    from loguru import logger
+                    logger.exception("core: rate_limit auditor failed")
+
                 html = render_to_string("access/rate_limited.html", {
                     "reset_in": result.reset_in,
                 }, request=request)
