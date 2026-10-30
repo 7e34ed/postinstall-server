@@ -244,3 +244,40 @@ UI: `/access/access-review/`.
 - `docs/break-glass.md` — аварийный доступ.
 - `docs/service-accounts.md` — сервисные аккаунты.
 - `docs/runbook-auth.md` — аварийные процедуры.
+
+## Модель доступа к спискам vs отдельным объектам
+
+### Списки (`ListView`, `FilterView`)
+
+Списки объектов **фильтруются Q-объектом**, построенным из `RoleAssignment`:
+
+```python
+def get_queryset(self):
+    qs = super().get_queryset()
+    if self.request.user.is_superuser:
+        return qs
+    return qs.filter(q_for_user_scope(self.request.user, model_type="host"))
+```
+
+`q_for_user_scope` — единая функция в apps/access/permissions.py:
+
+- **GLOBAL** role → Q() (всё видно)
+- **DOMAIN** role → Q(domain_id=ra.scope_id) (для Host) или Q(pk__in=...) (для Domain)
+- **HOST_SET** role → Q(host_set_id=ra.scope_id)
+- **HOST** role → Q(pk=ra.scope_id)
+- **нет** ролей → Q(pk__in=[]) (fail-closed)
+
+### Отдельные объекты (DetailView)
+
+Одиночные объекты проверяются через user_can_view_object(user, obj):
+
+- **superuser** → True
+- **scope.is_global** → bool(active_roles(user))
+- **иначе** → _ra_covers_scope для какой-либо `RoleAssignment`
+
+Guardian (get_objects_for_user) не используется для scope-списков — только для точечных проверок (гранты, sharing, break-glass).
+Почему так
+
+`RoleAssignment` — единственный источник истины для прав.
+`Guardian ACL` вторичен и требует синхронизации с RoleAssignment, которой нет.
+`Q`-фильтр fail-closed и прозрачен для аудита.
