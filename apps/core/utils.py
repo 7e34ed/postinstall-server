@@ -4,7 +4,14 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 
+_scope_resolver: Callable | None = None
+
+
+def register_scope_resolver(fn: Callable) -> None:
+    global _scope_resolver
+    _scope_resolver = fn
 
 # ============================================================
 #  HTTP
@@ -51,22 +58,8 @@ def deep_merge(base: dict, override: dict) -> dict:
 # ============================================================
 
 def resolve_scope_object(scope_type: str, scope_id: int):
-    """Объект scope по типу и id. None, если не найден.
-
-    Импорты ленивые: чтобы core не тянул inventory на старте.
-    """
     if scope_type == "global":
         return None
-    try:
-        if scope_type == "domain":
-            from apps.inventory.models import Domain
-            return Domain.objects.get(pk=scope_id)
-        if scope_type == "host_set":
-            from apps.inventory.models import HostSet
-            return HostSet.objects.get(pk=scope_id)
-        if scope_type == "host":
-            from apps.inventory.models import Host
-            return Host.objects.get(pk=scope_id)
-    except Exception:
+    if _scope_resolver is None:
         return None
-    return None
+    return _scope_resolver(scope_type, scope_id)
