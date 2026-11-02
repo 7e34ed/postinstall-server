@@ -38,7 +38,7 @@ def rate_limit(*, limit: int, window: int, key_prefix: str = "action"):
                     from loguru import logger
                     logger.exception("core: rate_limit auditor failed")
 
-                html = render_to_string("access/rate_limited.html", {
+                html = render_to_string("core/rate_limited.html", {
                     "reset_in": result.reset_in,
                 }, request=request)
                 return HttpResponse(html, status=429, content_type="text/html")
