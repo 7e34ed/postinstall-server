@@ -53,3 +53,19 @@ def login_with_aal(client, user, *, aal="aal2"):
 @pytest.fixture
 def login_with_aal_fixture():
     return login_with_aal
+
+
+@pytest.fixture
+def mfa_user(db):
+    """Пользователь с TOTP (для тестов AAL2)."""
+    from allauth.mfa.models import Authenticator
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    u = User.objects.create_user(
+        username="mfa_user", password="Test-Pass-AAL2-99",
+    )
+    Authenticator.objects.create(
+        user=u, type=Authenticator.Type.TOTP, data={},
+    )
+    return u

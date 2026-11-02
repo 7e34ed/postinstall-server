@@ -184,12 +184,12 @@ def test_credentials_hidden_for_viewer(h1):
 
 
 def test_roles_page_denied_for_admin(d1, setup_complete, login_with_aal_fixture):
-    from allauth.mfa.models import Authenticator
+    from tests.helpers import add_totp
     
     u = User.objects.create_user("a")
     _assign(u, Role.ADMIN, ScopeType.DOMAIN, d1.pk)
     # TOTP-authenticator, чтобы user_max_aal вернул AAL2
-    Authenticator.objects.create(user=u, type=Authenticator.Type.TOTP, data={})
+    add_totp(u)
 
     c = Client()
     login_with_aal_fixture(c, u, aal="aal2")
@@ -198,14 +198,12 @@ def test_roles_page_denied_for_admin(d1, setup_complete, login_with_aal_fixture)
 
 
 def test_roles_page_ok_for_supervisor(db, setup_complete, login_with_aal_fixture):
-    from allauth.mfa.models import Authenticator
+    from tests.helpers import add_totp
     
     u = User.objects.create_user("sup")
     _assign(u, Role.SUPERVISOR)
     # TOTP, чтобы user_max_aal вернул AAL2
-    Authenticator.objects.create(
-        user=u, type=Authenticator.Type.TOTP, data={"secret": "TEST"},
-    )
+    add_totp(u)
 
     c = Client()
     login_with_aal_fixture(c, u, aal="aal2")

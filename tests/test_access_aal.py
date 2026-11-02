@@ -84,13 +84,13 @@ def test_current_aal_default_aal1(su):
 
 
 @pytest.mark.django_db
-def test_set_aal(su):
+def test_set_aal(mfa_user):
     from django.test import RequestFactory
 
     rf = RequestFactory()
     r = rf.get("/")
     r.session = {}
-    r.user = su
+    r.user = mfa_user
 
     set_aal(r, AAL.AAL2)
     assert r.session["psi_aal"] == "aal2"

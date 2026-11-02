@@ -179,12 +179,14 @@ def test_expired_roles_not_counted(alice):
 # --- Setup phase ---
 
 @pytest.mark.django_db
+@pytest.mark.no_setup
 def test_setup_phase_initial():
     boot = SuperuserBootstrap.get()
     assert not boot.is_setup_complete
 
 
 @pytest.mark.django_db
+@pytest.mark.no_setup
 def test_setup_redirects(db):
     """Пока setup не завершён — все URL → /access/setup/."""
     c = Client()
@@ -203,6 +205,7 @@ def test_setup_middleware_exempt_health(db):
 
 
 @pytest.mark.django_db
+@pytest.mark.no_setup
 def test_setup_view_creates_supervisor(su):
     c = Client()
     c.force_login(su)
@@ -211,6 +214,7 @@ def test_setup_view_creates_supervisor(su):
 
 
 @pytest.mark.django_db
+@pytest.mark.no_setup
 def test_setup_view_two_supervisors_completes_setup(su, alice, bob):
     c = Client()
     c.force_login(su)
