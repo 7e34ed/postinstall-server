@@ -4,7 +4,7 @@ from django_filters.views import FilterView
 from django_tables2.views import SingleTableMixin
 from guardian.shortcuts import get_objects_for_user
 
-from apps.access.permissions import user_can_deploy, user_can_view_object
+from apps.core.permissions import user_can_deploy, user_can_view_object
 from apps.deploy.models import Deployment
 from apps.deploy.services import active_deployment_for
 
@@ -28,7 +28,7 @@ class HostListView(SingleTableMixin, FilterView):
         if user.is_superuser:
             return qs
 
-        from apps.access.permissions import user_can_view_object
+        from apps.core.permissions import user_can_view_object
         pks = [h.pk for h in qs if user_can_view_object(user, h)]
         return qs.filter(pk__in=pks)
 

@@ -11,8 +11,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from loguru import logger
 
-from apps.access.decorators import require_aal_action, require_roles
-from apps.core.decorators import rate_limit
+from apps.core.decorators import rate_limit, require_aal_action, require_roles
 from apps.core.permissions import is_supervisor
 from apps.core.utils import get_client_ip
 

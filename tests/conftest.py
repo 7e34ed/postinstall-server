@@ -69,3 +69,22 @@ def mfa_user(db):
         user=u, type=Authenticator.Type.TOTP, data={},
     )
     return u
+
+
+# tests/conftest.py
+@pytest.fixture(autouse=True)
+def _recovery_kit_dir(settings, tmp_path):
+    settings.ACCESS_RECOVERY_KIT_DIR = str(tmp_path / "recovery")
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _clean_recovery_dir():
+    import shutil
+    from pathlib import Path
+    p = Path("/tmp/postinstall-recovery-test")
+    if p.exists():
+        shutil.rmtree(p)
+    yield
+    if p.exists():
+        shutil.rmtree(p)

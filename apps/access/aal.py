@@ -9,36 +9,11 @@ AAL3 — два фактора, один hardware (WebAuthn / client cert / Ruto
 """
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import IntEnum  # noqa: F401
 
-from django.conf import settings
-from loguru import logger
-
-
-class AAL(IntEnum):
-    NONE = 0
-    AAL1 = 1
-    AAL2 = 2
-    AAL3 = 3
-
-    @property
-    def label(self) -> str:
-        return {
-            AAL.NONE: "не аутентифицирован",
-            AAL.AAL1: "AAL1 (пароль)",
-            AAL.AAL2: "AAL2 (пароль + TOTP)",
-            AAL.AAL3: "AAL3 (пароль + hardware)",
-        }[self]
-
-    @classmethod
-    def from_str(cls, s: str) -> "AAL":
-        m = {
-            "aal1": cls.AAL1,
-            "aal2": cls.AAL2,
-            "aal3": cls.AAL3,
-        }
-        return m.get((s or "").lower(), cls.NONE)
-
+# from django.conf import settings
+# from loguru import logger
+from apps.core.aal import AAL, AAL3_HARDWARE_TYPES  # noqa: F401
 
 # ============================================================
 #  Таблица «действие → минимальный AAL»
@@ -100,14 +75,6 @@ AAL_REQUIREMENTS_BY_ACTION: dict[str, AAL] = {
 
     "high_security.toggle": AAL.AAL3,
 }
-
-# Типы факторов, которые засчитываются как hardware для AAL3
-AAL3_HARDWARE_TYPES: set[str] = {
-    "webauthn",
-    "client_cert",
-    "rutoken",
-}
-
 
 def requirement_for_path(path: str) -> AAL | None:
     """Минимальный AAL для URL. None — не регламентировано (AAL1)."""

@@ -13,8 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from apps.access.decorators import require_roles
-from apps.core.decorators import rate_limit
+from apps.core.decorators import rate_limit, require_aal_action, require_roles
 from apps.core.utils import get_client_ip, resolve_scope_object
 from apps.inventory.models import Domain, Host, HostSet
 
