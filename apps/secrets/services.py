@@ -351,7 +351,7 @@ def list_backends() -> list[BackendInfo]:
         )
         if info.active:
             try:
-                info.health = test_backend(name)
+                info.health = check_backend(name)
             except Exception as exc:
                 info.health = {"status": "error", "detail": str(exc)}
         result.append(info)
@@ -377,7 +377,7 @@ def set_active_backend(name: str, *, user=None, ip: str | None = None) -> bool:
     if current == name:
         return True
 
-    health = test_backend(name)
+    health = check_backend(name)
     if health.get("status") != "ok":
         log_action(SecretAccessLog.Action.BACKEND_CHANGE,
                    user=user, ip=ip, success=False,
@@ -408,16 +408,29 @@ def set_backend_credentials(name: str, values: dict, *,
     if not isinstance(values, dict):
         raise ValueError("values must be a dict")
 
-    clean = {k: str(v) for k, v in values.items() if v not in (None, "")}
-    runtime.set_backend_credentials(name, clean)
+    # Merge: пустые/маска — оставить текущее значение
+    try:
+        current = runtime.get_backend_credentials(name)
+    except SecretsSealed:
+        current = {}
+    
+    merged = dict(current)   # ← начинаем с текущих
+    for key, value in values.items():
+        if value in (None, "", "••••••••", "***", "…"):
+            continue   # не трогаем
+        merged[key] = str(value)
+    
+    runtime.set_backend_credentials(name, merged)
     runtime.persist()
 
-    log_action(SecretAccessLog.Action.CREDENTIALS_CHANGE,
-               user=user, ip=ip, success=True,
-               detail={"backend": name, "keys": sorted(clean.keys())})
+    log_action(
+        SecretAccessLog.Action.CREDENTIALS_CHANGE,
+        user=user, ip=ip, success=True,
+        detail={"backend": name, "keys": sorted(merged.keys())},
+    )
     logger.info(
         f"secrets: credentials updated for {name} "
-        f"(keys: {sorted(clean.keys())})"
+        f"(keys: {sorted(merged.keys())})"
     )
 
 
@@ -431,7 +444,7 @@ def delete_backend_credentials(name: str, *, user=None, ip: str | None = None) -
                detail={"backend": name, "cleared": True})
 
 
-def test_backend(name: str) -> dict:
+def check_backend(name: str) -> dict:
     if name not in BACKEND_CLASSES:
         return {"status": "error", "detail": "unknown backend"}
 
@@ -446,7 +459,7 @@ def test_backend(name: str) -> dict:
     except SecretBackendError as exc:
         return {"status": "error", "detail": str(exc)}
     except Exception as exc:
-        logger.exception(f"secrets: test_backend({name})")
+        logger.exception(f"secrets: check_backend({name})")
         return {"status": "error", "detail": f"unexpected: {exc}"}
 
 # ============================================================
@@ -698,5 +711,5 @@ __all__ = [
     "get_ref", "list_refs", "touch_ref",
     "list_backends", "get_active_backend", "set_active_backend",
     "get_backend_credentials", "set_backend_credentials",
-    "delete_backend_credentials", "test_backend",
+    "delete_backend_credentials", "check_backend",
 ]

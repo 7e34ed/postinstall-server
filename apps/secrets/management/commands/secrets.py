@@ -252,7 +252,7 @@ class Command(BaseCommand):
             list_backends,
             set_active_backend,
             set_backend_credentials,
-            test_backend,
+            check_backend,
         )
 
         action = action or "list"
@@ -285,7 +285,7 @@ class Command(BaseCommand):
         if action == "test":
             if not name:
                 raise CommandError("укажите имя backend")
-            result = test_backend(name)
+            result = check_backend(name)
             self.stdout.write(f"{name}: {result}")
             return
 

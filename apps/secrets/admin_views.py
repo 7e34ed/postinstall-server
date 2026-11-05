@@ -31,7 +31,7 @@ from .services import (
     set_active_backend,
     set_backend_credentials,
     set_secret,
-    test_backend,
+    check_backend,
 )
 
 
@@ -162,7 +162,7 @@ def backend_credentials_save(request: HttpRequest) -> HttpResponse:
                             ip=get_client_ip(request))
 
     # health-check после сохранения
-    health = test_backend(name)
+    health = check_backend(name)
     if health.get("status") == "ok":
         messages.success(request, f"{name}: credentials сохранены, health OK.")
     else:
@@ -201,7 +201,7 @@ def backend_test(request: HttpRequest) -> HttpResponse:
         return HttpResponseForbidden("sealed")
 
     name = request.POST.get("name", "")
-    result = test_backend(name)
+    result = check_backend(name)
     if result.get("status") == "ok":
         messages.success(request, f"{name}: OK ({result})")
     else:

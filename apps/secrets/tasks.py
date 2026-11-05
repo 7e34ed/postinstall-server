@@ -79,14 +79,14 @@ def health_check(backend_name: str | None = None) -> dict:
         )
         return {"status": "skipped", "reason": "sealed"}
 
-    from .services import get_active_backend, test_backend
+    from .services import get_active_backend, check_backend
 
     name = backend_name or get_active_backend()
     if not name:
         return {"status": "skipped", "reason": "no active backend"}
 
     try:
-        result = test_backend(name)
+        result = check_backend(name)
     except Exception as exc:
         logger.exception(f"health_check({name}): unhandled")
         result = {"status": "error", "detail": str(exc)}

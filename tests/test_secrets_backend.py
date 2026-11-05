@@ -9,9 +9,13 @@ from apps.secrets.backends import BACKEND_CLASSES, is_registered
 from apps.secrets.models import SecretAccessLog, ServerKey
 from apps.secrets.runtime import runtime
 from apps.secrets.services import (
-    get_active_backend, list_backends, set_active_backend,
-    set_backend_credentials, test_backend,
-    get_backend_credentials, delete_backend_credentials,
+    delete_backend_credentials,
+    get_active_backend,
+    get_backend_credentials,
+    list_backends,
+    set_active_backend,
+    set_backend_credentials,
+    check_backend,
 )
 
 User = get_user_model()
@@ -104,7 +108,7 @@ def test_delete_backend_credentials(unsealed):
 
 @pytest.mark.django_db
 def test_test_backend_unknown(unsealed):
-    assert test_backend("bogus")["status"] == "error"
+    assert check_backend("bogus")["status"] == "error"
 
 
 @pytest.mark.django_db
@@ -190,7 +194,7 @@ def test_backend_credentials_save_keeps_secret_on_mask(admin_client):
 def test_backend_requires_unsealed(admin_client):
     runtime.seal()
     r = admin_client.get("/admin/secrets/backend/")
-    assert r.status_code == 302   # redirect на /admin/
+    assert r.status_code == 503   # ошибка согласно SealedGateMiddleware
 
 
 @pytest.mark.django_db
