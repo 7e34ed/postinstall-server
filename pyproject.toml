@@ -37,6 +37,7 @@ dependencies = [
     "python-dotenv>=1.2.4",
     "cryptography>=50.0.2",
     "fido2>=2.2.1",
+    "hvac>=2.4.0",
 ]
 
 [project.optional-dependencies]
