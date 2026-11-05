@@ -163,6 +163,49 @@ def _verify_seals(source: str) -> tuple[int, int | None, dict]:
     return len(seals), first_broken, details
 
 
+def _verify_seal_coverage(source: str) -> tuple[int, int | None, dict]:
+    """Проверить, что все записи до max_sealed покрыты seal'ами.
+
+    - Нет seal'ов вообще → OK (ещё не seal'или).
+    - Записи > max_sealed → OK (новые, ещё не seal'ены).
+    - Запись <= max_sealed не покрыта → gap (была seal'ена, потом пропала).
+
+    Возвращает (checked, first_gap_id, details).
+    """
+    from apps.audit.models import AuditSeal
+    Model = get_source_model(source)
+
+    all_ids = list(Model.objects.order_by("pk").values_list("pk", flat=True))
+    if not all_ids:
+        return 0, None, {"reason": "no_records"}
+
+    seals = list(
+        AuditSeal.objects.filter(source=source).order_by("first_id", "last_id")
+    )
+    if not seals:
+        # Нет seal'ов — норма, ещё не seal'или
+        return len(all_ids), None, {"reason": "no_seals_yet"}
+
+    max_sealed = max(s.last_id for s in seals)
+    covered_ranges = [(s.first_id, s.last_id) for s in seals]
+
+    # Ищем gap только среди записей в [min_id..max_sealed]
+    first_gap = None
+    for record_id in all_ids:
+        if record_id > max_sealed:
+            break   # дальше — новые, ещё не seal'ены
+        if not any(s <= record_id <= e for s, e in covered_ranges):
+            first_gap = record_id
+            break
+
+    details = {
+        "seals": [{"first": s.first_id, "last": s.last_id} for s in seals],
+        "max_sealed": max_sealed,
+        "first_gap": first_gap,
+    }
+    return len(all_ids), first_gap, details
+
+
 def verify_source(source: str, *, from_id: int = 0,
                    max_records: int | None = None) -> VerifyResult:
     """Полная верификация source: записи + seal'ы."""
@@ -172,12 +215,13 @@ def verify_source(source: str, *, from_id: int = 0,
         Model, from_id=from_id, max_records=max_records,
     )
     seals_checked, seals_broken, seals_details = _verify_seals(source)
+    coverage_checked, first_gap, coverage_details = _verify_seal_coverage(source)
 
-    first_broken = records_broken or seals_broken
+    first_broken = records_broken or seals_broken or first_gap
 
     if first_broken is None:
         status = AuditVerifyRun.Status.OK
-    elif records_broken is not None:
+    elif records_broken is not None or seals_broken is not None:
         status = AuditVerifyRun.Status.FAILED
     else:
         status = AuditVerifyRun.Status.PARTIAL
@@ -185,6 +229,7 @@ def verify_source(source: str, *, from_id: int = 0,
     details = {
         "records": records_details,
         "seals": seals_details,
+        "coverage": coverage_details,
     }
 
     run = AuditVerifyRun.objects.create(

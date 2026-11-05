@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.utils import timezone
 
 from apps.audit.models import (
@@ -17,7 +18,7 @@ from apps.core.models import AuditLog
 
 User = get_user_model()
 
-
+# Не тест! Вспомогательная функция
 def _mk_log(**overrides):
     """Создать тестовую запись."""
     data = {
@@ -79,11 +80,15 @@ def test_chain_verify_ok():
 
 @pytest.mark.django_db
 def test_chain_verify_after_tamper():
-    """Прямое изменение chain_hash через update() обнаруживается."""
+    """Прямое изменение chain_hash через SQL обнаруживается."""
     logs = [_mk_log(message=f"m{i}") for i in range(3)]
 
-    # Имитируем tamper: меняем chain_hash у средней записи
-    AuditLog.objects.filter(pk=logs[1].pk).update(chain_hash="0" * 64)
+    # Tamper: меняем chain_hash у средней записи через raw SQL (обход ORM)
+    with connection.cursor() as cur:
+        cur.execute(
+            "UPDATE core_auditlog SET chain_hash = %s WHERE id = %s",
+            ["0" * 64, logs[1].pk],
+        )
 
     r = verify_source("audit_log")
     assert r.status != "ok"
@@ -94,15 +99,14 @@ def test_chain_verify_after_tamper():
 
 @pytest.mark.django_db
 def test_seal_creates():
-    for i in range(3):
-        _mk_log(message=f"m{i}")
+    logs = [_mk_log(message=f"m{i}") for i in range(3)]
     result = seal_source("audit_log")
     assert result is not None
     assert result.count == 3
 
     seal = AuditSeal.objects.get(source="audit_log")
-    assert seal.first_id == 1
-    assert seal.last_id == 3
+    assert seal.first_id == logs[0].pk    # ← реальный первый id
+    assert seal.last_id == logs[-1].pk    # ← реальный последний
     assert seal.signature
     assert seal.key_id is not None
 
@@ -143,25 +147,23 @@ def test_seal_signature_invalid_after_tamper():
 
 
 @pytest.mark.django_db
-def test_verify_detects_seal_gap():
-    for i in range(5):
-        _mk_log(message=f"m{i}")
-    seal_source("audit_log")   # [1..5]
-    for i in range(3):
-        _mk_log(message=f"extra{i}")
-    seal_source("audit_log")   # [6..8]
+def test_verify_detects_record_deletion():
+    """Удаление записи через raw SQL (обход AppendOnlyManager) детектится."""
+    from django.db import connection
 
-    # Удаляем второй seal → обнаружится gap
-    AuditSeal.objects.filter(source="audit_log").order_by("-last_id").first().delete()
-    # создаём seal с "дыркой"
-    for i in range(2):
-        _mk_log(message=f"more{i}")
-    seal_source("audit_log")   # [9..10]
+    logs = [_mk_log(message=f"m{i}") for i in range(5)]
+    seal_source("audit_log")
+
+    # Tamper: удаляем среднюю запись через raw SQL
+    with connection.cursor() as cur:
+        cur.execute(
+            "DELETE FROM core_auditlog WHERE id = %s",
+            [logs[2].pk],
+        )
 
     r = verify_source("audit_log")
-    # gap между [1..5] и [9..10]
+    # chain порвана: у logs[3] prev_hash указывает на удалённую logs[2]
     assert r.status != "ok"
-
 
 # --- verify_all / seal_all ---
 

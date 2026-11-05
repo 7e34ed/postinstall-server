@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
+from apps.core.audit_chain import AppendOnlyManager, ChainedLogModel
 from apps.core.models import TimeStampedModel
 
 from .roles import DUAL_APPROVAL_ROLES, Role, ScopeType
@@ -404,13 +405,14 @@ class UserCertificate(models.Model):
         return f"{self.user} / {self.label}"
 
 
-class AuthAuditLog(models.Model):
+class AuthAuditLog(ChainedLogModel):
     """Журнал аутентификации и изменений доступа.
 
     Отдельно от AuditLog (HTTP) — этот про безопасность.
     
     Аудит аутентификации/авторизации. Append-only + hash chain
     """
+    objects = AppendOnlyManager()
 
     ADVISORY_LOCK_KEY = 0x4155_5448_4155   # "AUTHAU" в hex
 

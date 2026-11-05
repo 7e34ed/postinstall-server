@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from .audit_chain import ChainedLogModel
+from .audit_chain import AppendOnlyManager, ChainedLogModel
 
 
 class TimeStampedModel(models.Model):
@@ -22,8 +22,10 @@ class UUIDModel(models.Model):
         abstract = True
 
 
-class AuditLog(models.Model):
+class AuditLog(ChainedLogModel):
     """HTTP-аудит. Append-only + hash chain."""
+
+    objects = AppendOnlyManager()
 
     ADVISORY_LOCK_KEY = 0x4155_4449_5431   # "AUDIT1" в hex, произвольно
 
