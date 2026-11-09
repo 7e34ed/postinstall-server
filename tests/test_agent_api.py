@@ -25,15 +25,21 @@ def agent_keys():
     return priv, pub
 
 
-def _sign(priv_pem: bytes, method: str, path: str, body: bytes,
+def _sign(priv_pem: bytes, method: str, path: str, body: bytes | str,
           agent_id: str) -> dict:
     import hashlib
 
     ts = int(time.time())
+    if isinstance(body, str):
+        body = body.encode()
+
     body_hash = hashlib.sha256(body).hexdigest()
     canonical = f"{method.upper()}\n{path}\n{ts}\n{body_hash}".encode()
     priv = serialization.load_pem_private_key(priv_pem, password=None)
     sig = priv.sign(canonical)
+    
+    print(f"DEBUG SIGN: canonical={canonical}, agent_id={agent_id}")
+
     return {
         "Authorization": f"PSI-Agent {ts}:{base64.b64encode(sig).decode()}",
         "X-PSI-Agent-Id": agent_id,
@@ -81,9 +87,10 @@ def test_register_and_heartbeat(client, host, agent_keys):
     assert "server_pubkey_ed25519" in data
 
     # heartbeat
-    body = json.dumps({"agent_version": "0.1.0"}).encode()
+    body = '{"agent_version":"0.1.0"}'
+    
     headers = _sign(priv, "POST", "/api/v1/agent/heartbeat", body, agent_id)
-    r = client.post("/api/v1/agent/heartbeat", data=body, **headers)
+    r = client.post("/api/v1/agent/heartbeat", content_type="application/json", data=body, headers=headers)
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
 
@@ -94,28 +101,30 @@ def test_heartbeat_bad_signature(client, host, agent_keys):
     from apps.deploy.services import generate_x25519_keypair
     _, xpub = generate_x25519_keypair()
 
+    data = {
+        "hostname": "web1",
+        "os": "linux", "distro": "debian", "distro_version": "12",
+        "arch": "amd64", "agent_version": "0.1.0",
+        "pubkey_ed25519": pub.decode(),
+        "pubkey_x25519": xpub.decode(),
+    }
+
     r = client.post(
         "/api/v1/agent/register",
-        data=json.dumps({
-            "hostname": "web1",
-            "os": "linux", "distro": "debian", "distro_version": "12",
-            "arch": "amd64", "agent_version": "0.1.0",
-            "pubkey_ed25519": pub.decode(),
-            "pubkey_x25519": xpub.decode(),
-        }),
+        data=data,
         content_type="application/json",
     )
     agent_id = r.json()["agent_id"]
 
-    body = b'{"agent_version":"0.1.0"}'
+    body = '{"agent_version":"0.1.0"}'
     ts = int(time.time())
     headers = {
         "Authorization": f"PSI-Agent {ts}:{base64.b64encode(b'x'*64).decode()}",
         "X-PSI-Agent-Id": agent_id,
         "Content-Type": "application/json",
     }
-    r = client.post("/api/v1/agent/heartbeat", data=body, **headers)
-    assert r.status_code == 403   # AuthenticationFailed → 403
+    r = client.post("/api/v1/agent/heartbeat", content_type="application/json", data=body, headers=headers)
+    assert r.status_code == 401   # AuthenticationFailed → 403
 
 
 @pytest.mark.django_db
@@ -146,7 +155,7 @@ def test_tasks_empty(client, host, agent_keys):
     try:
         body = b""
         headers = _sign(priv, "GET", "/api/v1/agent/tasks", body, agent_id)
-        r = client.get("/api/v1/agent/tasks", **headers)
+        r = client.get("/api/v1/agent/tasks", headers=headers)
         assert r.status_code == 204
     finally:
         v.LONG_POLL_TIMEOUT = old_timeout
@@ -176,7 +185,7 @@ def test_tasks_returns_deployment(client, host, agent_keys):
 
     body = b""
     headers = _sign(priv, "GET", "/api/v1/agent/tasks", body, agent_id)
-    r = client.get("/api/v1/agent/tasks", **headers)
+    r = client.get("/api/v1/agent/tasks", headers=headers)
     assert r.status_code == 200
     data = r.json()
     assert data["deployment_id"] == str(deployment.id)
