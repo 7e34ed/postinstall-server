@@ -38,8 +38,6 @@ def _sign(priv_pem: bytes, method: str, path: str, body: bytes | str,
     priv = serialization.load_pem_private_key(priv_pem, password=None)
     sig = priv.sign(canonical)
     
-    print(f"DEBUG SIGN: canonical={canonical}, agent_id={agent_id}")
-
     return {
         "Authorization": f"PSI-Agent {ts}:{base64.b64encode(sig).decode()}",
         "X-PSI-Agent-Id": agent_id,

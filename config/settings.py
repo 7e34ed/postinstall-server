@@ -487,14 +487,6 @@ class Base(Configuration):
         после инициализации Configuration.
         """
 
-        # --- remove after use ---
-        import sys
-        print(f"[DEBUG] DATABASES: {cls.DATABASES}", file=sys.stderr)
-        print(f"[DEBUG] REDIS_URL: {cls.REDIS_URL!r}", file=sys.stderr)
-        print(f"[DEBUG] SECRETS_MASTER_KEY_FILE: {cls.SECRETS_MASTER_KEY_FILE!r}", file=sys.stderr)
-        print(f"[DEBUG] DOTENV path: {getattr(cls, 'DOTENV', '?')}", file=sys.stderr)
-        # --- end ---
-
         cls._setup_db()
         cls._setup_redis()
         cls._setup_loguru()
