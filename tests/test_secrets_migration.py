@@ -29,11 +29,11 @@ def unsealed(db):
 # --- in-memory backend для target (заглушка) ---
 
 class InMemoryBackend(LocalBackend):
-    """Тестовый backend: хранит секреты в своём dict."""
+    """Тестовый backend: хранит секреты в своём dict (классовый store,
+    чтобы все экземпляры делили хранилище — как реальный backend)."""
     name = "test_target"
-
-    def __init__(self):
-        self._store: dict[str, dict] = {}
+    
+    _store: dict[str, dict] = {}   # ← классовый атрибут, не сбрасывать в __init__
 
     def get(self, path, key):
         from apps.secrets.backends.base import SecretNotFound
@@ -60,13 +60,12 @@ class InMemoryBackend(LocalBackend):
 
 @pytest.fixture
 def patched_backends(monkeypatch, unsealed):
-    """Регистрируем InMemoryBackend под именем 'test_target'."""
     from apps.secrets import backends
     backends.BACKEND_CLASSES["test_target"] = InMemoryBackend
-    # очищаем на случай повторного использования
-    InMemoryBackend._store = {}
+    InMemoryBackend._store = {}   # ← сброс классового
     yield
     backends.BACKEND_CLASSES.pop("test_target", None)
+    InMemoryBackend._store = {}   # ← очистка после теста
 
 
 def test_dry_run_does_not_write(patched_backends, unsealed):
@@ -165,7 +164,6 @@ def test_resume(patched_backends, unsealed, monkeypatch):
     runtime.set("a/3", "value", "v3")
     runtime.persist()
 
-    # подменяем set на target, чтобы имитировать KeyboardInterrupt на 2-й записи
     call_count = {"n": 0}
     original_set = InMemoryBackend.set
 
@@ -182,11 +180,18 @@ def test_resume(patched_backends, unsealed, monkeypatch):
     assert m.done == 1
     assert m.last_path
 
-    # восстанавливаем set и продолжаем
     monkeypatch.setattr(InMemoryBackend, "set", original_set)
     m2 = migrate(
         source="local", target="test_target",
         resume_id=m.id,
     )
     assert m2.status == SecretsMigration.Status.SUCCESS
-    assert m2.done == 2  # остальные 2 записи
+    # накопительные счётчики: 1 (до прерывания) + 2 (resume) = 3
+    assert m2.done == 3
+    assert m2.skipped == 0
+    assert m2.failed == 0
+    # все 3 записи в target
+    tgt = InMemoryBackend()
+    assert tgt._store["a/1"]["value"] == "v1"
+    assert tgt._store["a/2"]["value"] == "v2"
+    assert tgt._store["a/3"]["value"] == "v3"

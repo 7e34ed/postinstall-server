@@ -3,9 +3,13 @@ from __future__ import annotations
 from .base import SecretBackend, SecretBackendError, SecretNotFound
 
 BACKEND_CLASSES: dict[str, type[SecretBackend]] = {}
-
+_registered = False
 
 def _register() -> None:
+    global _registered
+    if _registered:
+        return
+
     from .keepass import KeepassBackend
     from .local import LocalBackend
     from .openbao import OpenBaoBackend
@@ -15,6 +19,7 @@ def _register() -> None:
         "openbao": OpenBaoBackend,
         "keepass": KeepassBackend,
     })
+    _registered = True
 
 
 def is_registered(name: str) -> bool:
@@ -24,8 +29,9 @@ def is_registered(name: str) -> bool:
 
 
 def get_backend(name: str | None = None) -> SecretBackend:
-    if not BACKEND_CLASSES:
-        _register()
+    _register()
+    # if not BACKEND_CLASSES:
+    #     _register()
 
     if name is None:
         from ..runtime import runtime

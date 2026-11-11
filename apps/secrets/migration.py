@@ -72,6 +72,11 @@ def migrate(
         mig = SecretsMigration.objects.get(pk=resume_id)
         if mig.is_final:
             raise ValueError(f"миграция {mig.id} уже завершена ({mig.status})")
+
+        if mig.status == SecretsMigration.Status.CANCELLED:
+            mig.status = SecretsMigration.Status.RUNNING
+            mig.save(update_fields=["status"])
+        
         if mig.source_backend != source or mig.target_backend != target:
             raise ValueError(
                 "source/target не совпадают с сохранённой миграцией"

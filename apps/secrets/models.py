@@ -343,8 +343,9 @@ class SecretsMigration(TimeStampedModel):
     @property
     def is_final(self) -> bool:
         return self.status in (
-            self.Status.SUCCESS, self.Status.PARTIAL,
-            self.Status.FAILED, self.Status.CANCELLED,
+            self.Status.SUCCESS,
+            self.Status.PARTIAL,
+            self.Status.FAILED, 
             self.Status.DRY_RUN,
         )
 
