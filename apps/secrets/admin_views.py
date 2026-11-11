@@ -20,6 +20,7 @@ from .forms import SecretCreateForm, SecretEditForm
 from .models import SecretAccessLog, log_action
 from .runtime import SecretsSealed, runtime
 from .services import (
+    check_backend,
     delete_backend_credentials,
     delete_secret,
     get_active_backend,
@@ -31,7 +32,6 @@ from .services import (
     set_active_backend,
     set_backend_credentials,
     set_secret,
-    check_backend,
 )
 
 
@@ -227,8 +227,8 @@ def migrations_page(request):
 # ============================================================
 
 # @staff_member_required
-@login_required
 # @require_roles("supervisor", "admin", "operator", "auditor", "viewer")
+@login_required
 @require_aal_action("secrets.read")
 def items_list(request: HttpRequest) -> HttpResponse:
     if not runtime.is_unsealed():
@@ -251,9 +251,9 @@ def items_list(request: HttpRequest) -> HttpResponse:
         readonly_mode = False
 
     if q:
+
         refs = [r for r in refs if q.lower() in r.path.lower()
                 or q.lower() in r.display_name.lower()]
-
     rows = [
         {
             "ref": ref,
@@ -377,14 +377,16 @@ def item_edit(request: HttpRequest, path: str) -> HttpResponse:
 @require_aal_action("secrets.write")
 @require_http_methods(["POST"])
 def item_delete(request: HttpRequest, path: str) -> HttpResponse:
+
     if not runtime.is_unsealed():
         return HttpResponseForbidden("sealed")
 
     if not record_exists(path):
         messages.warning(request, f"Запись {path!r} не найдена.")
         return redirect(reverse("secrets:items"))
-
+    
     ok = delete_secret(path, user=request.user, ip=get_client_ip(request))
+
     if ok:
         messages.success(request, f"Запись {path} удалена.")
     else:

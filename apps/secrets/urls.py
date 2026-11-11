@@ -19,20 +19,18 @@ urlpatterns = [
     path("migrations/", admin_views.migrations_page, name="migrations"),
 
     # --- прикладные секреты ---
+    # ВАЖНО: порядок!
+    # <path:path> — жадный, съедает "a/b/keys/extra" целиком.
+    # Специфичные суффиксы (/keys/<key>/delete/, /delete/, /grant/)
+    # должны быть РАНЬШЕ общего items/<path>/ (item-edit).
     path("items/", admin_views.items_list, name="items"),
     path("items/new/", admin_views.item_new, name="item-new"),
-    path("items/<path:path>/", admin_views.item_edit, name="item-edit"),
-    path("items/<path:path>/delete/",
-         admin_views.item_delete, name="item-delete"),
-    path("items/<path:path>/keys/<str:key>/delete/",
-         admin_views.item_key_delete, name="item-key-delete"),
+    path("items/<path:path>/keys/<str:key>/delete/", admin_views.item_key_delete, name="item-key-delete"),
+    path("items/<path:path>/delete/", admin_views.item_delete, name="item-delete"),
 
-    path("items/<path:path>/grant/", views.grant_create,
-         name="grant-create"),
-    path("items/<path:path>/grant/<int:grant_id>/revoke/",
-         views.grant_revoke, name="grant-revoke"),
-    path("items/<path:path>/transfer/", views.transfer_initiate,
-         name="transfer-initiate"),
-    path("transfers/<uuid:transfer_id>/approve/",
-         views.transfer_approve, name="transfer-approve"),
+    path("items/<path:path>/grant/", views.grant_create, name="grant-create"),
+    path("items/<path:path>/grant/<int:grant_id>/revoke/", views.grant_revoke, name="grant-revoke"),
+    path("items/<path:path>/transfer/", views.transfer_initiate, name="transfer-initiate"),
+    path("transfers/<uuid:transfer_id>/approve/", views.transfer_approve, name="transfer-approve"),
+    path("items/<path:path>/", admin_views.item_edit, name="item-edit"),
 ]

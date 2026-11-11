@@ -1,6 +1,15 @@
+import base64
+
 import pytest
+from django.contrib.auth import get_user_model
+from django.test import Client
 from django.utils import timezone
 
+from apps.secrets import blob as b
+from apps.secrets.models import ServerKey
+from apps.secrets.runtime import runtime
+
+User = get_user_model()
 
 # Для добавления ручками в тест
 @pytest.fixture
@@ -88,3 +97,29 @@ def _clean_recovery_dir():
     yield
     if p.exists():
         shutil.rmtree(p)
+
+
+@pytest.fixture
+def unsealed_runtime(db):
+    """ServerKey + runtime unsealed. Откат после теста."""
+    salt = b.new_salt()
+    kek = b.derive_kek("m", salt)
+    blob = b.encrypt_blob(b.empty_blob(), kek)
+    ServerKey.objects.create(
+        salt=base64.b64encode(salt).decode(),
+        blob=base64.b64encode(blob).decode(),
+    )
+    runtime.seal()
+    runtime.unlock("m")
+    yield
+    runtime.seal()
+
+
+@pytest.fixture
+def admin_client(db, unsealed_runtime):
+    """Superuser с разблокированным runtime."""
+    user = User.objects.create_superuser("admin", "a@a.a", "x")
+    c = Client()
+    c.force_login(user)
+    return c
+
