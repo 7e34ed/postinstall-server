@@ -115,6 +115,13 @@ def create_credential(
     """Создать credential и связанные SecretRef'ы.
 
     Все секреты сохраняются через secrets.services.set_secret.
+
+    Порядок:
+      1. Создать Credential (без secret_* — они появятся ниже).
+      2. Создать SecretRef'ы через set_secret.
+      3. Привязать SecretRef к Credential.
+      4. full_clean() — только теперь все обязательные поля есть.
+      5. save().
     """
     from apps.secrets.models import SecretRef
     from apps.secrets.services import set_secret
@@ -124,59 +131,39 @@ def create_credential(
         description=description,
         domain=domain, host_set=host_set, host=host,
     )
-    cred.full_clean()
-    cred.save()
 
+    # Секреты создаём до full_clean — иначе clean() упадёт на
+    # отсутствии secret_password для password-kind.
     if password is not None:
         set_secret(
-            cred.secret_path_password, 
-            "value", 
-            password,
+            cred.secret_path_password, "value", password,
             display_name=f"Credential: {name} (password)",
-            user=user,
-            domain=domain, 
-            host_set=host_set, 
-            host=host,
+            user=user, domain=domain, host_set=host_set, host=host,
         )
-        ref = SecretRef.objects.filter(
+        cred.secret_password = SecretRef.objects.filter(
             backend="local", path=cred.secret_path_password, key="value",
         ).first()
-        if ref:
-            cred.secret_password = ref
 
     if ssh_key is not None:
         set_secret(
-            cred.secret_path_ssh_key, 
-            "value", 
-            ssh_key,
+            cred.secret_path_ssh_key, "value", ssh_key,
             display_name=f"Credential: {name} (ssh_key)",
-            user=user,
-            domain=domain, 
-            host_set=host_set, 
-            host=host,
+            user=user, domain=domain, host_set=host_set, host=host,
         )
-        ref = SecretRef.objects.filter(
+        cred.secret_ssh_key = SecretRef.objects.filter(
             backend="local", path=cred.secret_path_ssh_key, key="value",
         ).first()
-        if ref:
-            cred.secret_ssh_key = ref
 
     if passphrase is not None:
         set_secret(
-            cred.secret_path_passphrase, 
-            "value", 
-            passphrase,
+            cred.secret_path_passphrase, "value", passphrase,
             display_name=f"Credential: {name} (passphrase)",
-            user=user,
-            domain=domain, 
-            host_set=host_set, 
-            host=host,
+            user=user, domain=domain, host_set=host_set, host=host,
         )
-        ref = SecretRef.objects.filter(
+        cred.secret_passphrase = SecretRef.objects.filter(
             backend="local", path=cred.secret_path_passphrase, key="value",
         ).first()
-        if ref:
-            cred.secret_passphrase = ref
 
+    cred.full_clean()   # ← теперь все secret_* установлены
     cred.save()
     return cred
