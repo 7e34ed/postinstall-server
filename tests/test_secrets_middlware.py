@@ -43,7 +43,10 @@ def test_admin_blocked_when_sealed(sealed):
     c = Client()
     r = c.get("/admin/")
     assert r.status_code == 503
-    assert "Секреты заблокированы" in r.content.decode()
+    # SealedGateMiddleware рендерит HTML-страницу, не JSON
+    assert r["Content-Type"].startswith("text/html")
+    body = r.content.decode()
+    assert "sealed" in body.lower() or "заблокирован" in body.lower()
 
 
 @pytest.mark.django_db

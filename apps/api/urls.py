@@ -1,6 +1,7 @@
 from django.urls import path
 
-from .views import agent, health
+from .views import agent
+from .views.health import health
 
 app_name = "api"
 
