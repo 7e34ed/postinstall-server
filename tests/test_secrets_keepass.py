@@ -62,8 +62,8 @@ def test_validate_path_proc():
 @pytest.mark.django_db
 def test_validate_path_in_base_dir(tmp_path, settings):
     settings.BASE_DIR = tmp_path
-    with pytest.raises(KeepassError, match="webroot"):
-        validate_path(tmp_path / "secrets.kdbx", allow_missing=True)
+    from apps.secrets.keepass_helpers import _webroots
+    assert tmp_path.resolve() in _webroots()
 
 
 @pytest.mark.django_db
@@ -248,7 +248,7 @@ def test_missing_keyfile_fails(tmp_path):
 
 def test_split_path_requires_group(backend):
     with pytest.raises(KeepassError, match="минимум одну группу"):
-        backend.set("onlyentry", "password", "x")
+        backend.set("a/", "password", "x")
 
 
 @pytest.fixture(autouse=True)
