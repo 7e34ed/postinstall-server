@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.mark.django_db
-def test_collect_secrets_uses_credential(domain, host_set, host, runtime_unsealed):
+def test_collect_secrets_uses_credential(domain, host_set, host, unsealed_runtime):
     from apps.api.services import _collect_secrets
     from apps.credentials.services import create_credential
     from apps.deploy.models import Agent
