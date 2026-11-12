@@ -2,7 +2,9 @@ import pytest
 from django.test import RequestFactory, override_settings
 
 from apps.secrets.transport_guard import (
-    InsecureTransport, enforce_secure_unseal, inspect_transport,
+    InsecureTransport,
+    enforce_secure_unseal,
+    inspect_transport,
     is_secure_for_unseal,
 )
 
