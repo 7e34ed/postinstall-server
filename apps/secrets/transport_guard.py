@@ -51,6 +51,7 @@ def _normalize_tls(version: str | None) -> tuple[str, int]:
     elif v.startswith("TLS"):
         v = v[3:]
     # v теперь "1.2" / "1.3" / "1.0"
+    v = v.lstrip(".")
     n = _TLS_NUMERIC.get(v, 0)
     return (f"TLSv{v}" if n else ""), n
 
