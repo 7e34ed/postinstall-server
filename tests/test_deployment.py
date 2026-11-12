@@ -11,13 +11,6 @@ User = get_user_model()
 
 
 @pytest.fixture
-def host(db):
-    d = Domain.objects.create(name="test.local")
-    s = HostSet.objects.create(domain=d, name="default", platform="linux.debian")
-    return Host.objects.create(domain=d, host_set=s, hostname="web1")
-
-
-@pytest.fixture
 def admin_client(db):
     user = User.objects.create_superuser("admin", "a@a.a", "x")
     c = Client()

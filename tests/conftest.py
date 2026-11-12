@@ -123,3 +123,31 @@ def admin_client(db, unsealed_runtime):
     c.force_login(user)
     return c
 
+
+# --- inventory fixtures ---
+
+@pytest.fixture
+def domain(db):
+    """Базовый Domain для тестов."""
+    from apps.inventory.models import Domain
+    return Domain.objects.create(name="test.local")
+
+
+@pytest.fixture
+def host_set(domain):
+    """Базовый HostSet в domain."""
+    from apps.inventory.models import HostSet
+    return HostSet.objects.create(
+        domain=domain, name="default", platform="linux.debian",
+    )
+
+
+@pytest.fixture
+def host(host_set):
+    """Базовый Host web1 в host_set."""
+    from apps.inventory.models import Host
+    return Host.objects.create(
+        domain=host_set.domain,
+        host_set=host_set,
+        hostname="web1",
+    )

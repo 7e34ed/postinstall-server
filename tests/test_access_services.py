@@ -25,12 +25,6 @@ def su(db):
     return u
 
 
-@pytest.fixture
-def domain(db):
-    from apps.inventory.models import Domain
-    return Domain.objects.create(name="test.local")
-
-
 # --- Service accounts ---
 
 @pytest.mark.django_db

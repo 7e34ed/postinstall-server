@@ -19,11 +19,6 @@ User = get_user_model()
 
 
 @pytest.fixture
-def domain(db):
-    return Domain.objects.create(name="test.local")
-
-
-@pytest.fixture
 def host_set(domain):
     return HostSet.objects.create(
         domain=domain, name="web", platform="linux.debian",

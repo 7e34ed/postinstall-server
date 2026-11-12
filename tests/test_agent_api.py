@@ -13,13 +13,6 @@ from apps.inventory.models import Domain, Host, HostSet
 
 
 @pytest.fixture
-def host(db):
-    d = Domain.objects.create(name="test.local")
-    s = HostSet.objects.create(domain=d, name="default", platform="linux.debian")
-    return Host.objects.create(domain=d, host_set=s, hostname="web1")
-
-
-@pytest.fixture
 def agent_keys():
     priv, pub = generate_ed25519_keypair()
     return priv, pub

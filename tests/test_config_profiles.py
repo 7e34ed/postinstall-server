@@ -1,15 +1,14 @@
 import pytest
 
 from apps.config.models import (
-    Certificate, ConfigProfile, ConfigRevision, Package, Repository,
+    Certificate,
+    ConfigProfile,
+    ConfigRevision,
+    Package,
+    Repository,
 )
 from apps.config.services import resolve_for_host, resolve_hardening_for_host
 from apps.inventory.models import Domain, Host, HostSet
-
-
-@pytest.fixture
-def domain(db):
-    return Domain.objects.create(name="test.local")
 
 
 @pytest.fixture
@@ -22,15 +21,6 @@ def host_set(domain):
             "general": {"allowed_ips": ["10.0.0.0/8"], "allowed_ports": [22]},
             "fail2ban": {"enabled": True, "jails": ["sshd"]},
         },
-    )
-
-
-@pytest.fixture
-def host(host_set):
-    return Host.objects.create(
-        domain=host_set.domain,
-        host_set=host_set,
-        hostname="web1",
     )
 
 

@@ -1,12 +1,15 @@
-import pytest
 from datetime import timedelta
 
+import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 
 from apps.dashboard.services import (
-    collect_metrics, deployment_trend, domains_overview, recent_deployments,
+    collect_metrics,
+    deployment_trend,
+    domains_overview,
+    recent_deployments,
 )
 from apps.deploy.models import Agent, Deployment
 from apps.inventory.models import Domain, Host, HostSet
